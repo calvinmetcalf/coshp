@@ -4,6 +4,12 @@ A library to query shapefiles that have been sorted geographically via a `.qix` 
 
 ## API
 
+install via npm
+
+```bash
+npm insall coshp
+```
+
 ```js
 const coshp = new Coshp('https://example.biz/path/to/shapfile.shp');
 const geojson = coshp.query([xmin, ymin, xmax, ymax]);
@@ -14,13 +20,13 @@ const geojson = coshp.query([xmin, ymin, xmax, ymax]);
 to add a `.qix` index file you can run the following command
 
 ```bash
-coshp build ./path/to/shape.shp
+npx coshp build ./path/to/shape.shp
 ```
 
 then to reorder your shapefile to  be queriable via the `.qix` file run
 
 ```bash
-coshp build  ./path/to/shape.shp
+npx coshp build  ./path/to/shape.shp
 ```
 
 and it will output the reordered file at `./path/to/shape-ordered.shp`
