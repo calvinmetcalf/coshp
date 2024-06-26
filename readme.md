@@ -26,7 +26,7 @@ npx coshp build ./path/to/shape.shp
 then to reorder your shapefile to  be queriable via the `.qix` file run
 
 ```bash
-npx coshp build  ./path/to/shape.shp
+npx coshp reorder  ./path/to/shape.shp
 ```
 
 and it will output the reordered file at `./path/to/shape-ordered.shp`
