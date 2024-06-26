@@ -44,3 +44,9 @@ I was doing research for a talk and [Paul Ramsey](http://blog.cleverelephant.ca/
 ### is this a good idea?
 
 probably not
+
+
+## todo
+
+- better `.qix` file generation
+- partial loading of `.qix` files
