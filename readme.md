@@ -1,11 +1,29 @@
 # cloud optimized shapefile
 
+A library to query shapefiles that have been sorted geographically via a `.qix` file, based on the idea from [Paul Ramsey](http://blog.cleverelephant.ca/2022/04/coshp.html).
+
 ## API
 
 ```js
-const coshp = new Coshp('https://example.biz/path/to/shapfile/no/extention);
+const coshp = new Coshp('https://example.biz/path/to/shapfile.shp');
 const geojson = coshp.query([xmin, ymin, xmax, ymax]);
 ```
+
+## Command line tools
+
+to add a `.qix` index file you can run the following command
+
+```bash
+coshp build ./path/to/shape.shp
+```
+
+then to reorder your shapefile to  be queriable via the `.qix` file run
+
+```bash
+coshp build  ./path/to/shape.shp
+```
+
+and it will output the reordered file at `./path/to/shape-ordered.shp`
 
 ## questions
 

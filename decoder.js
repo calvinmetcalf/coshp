@@ -1,6 +1,6 @@
 function defaultDecoder(data) {
-    var decoder = new StringDecoder();
-    var out = decoder.write(data) + decoder.end();
+    const td = new TextDecoder();
+    const out = td.decode(buffer);
     return out.replace(/\0/g, '').trim();
 }
 export default function createDecoder(encoding) {

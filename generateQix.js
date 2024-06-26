@@ -23,7 +23,7 @@ const updateBbox = (old, nw) => {
     }
 }
 class QixNode {
-    constructor(maxDepth, bbox, depth, splitSize = 2) {
+    constructor(maxDepth, bbox, depth, splitSize = 4) {
         this.maxDepth = maxDepth;
         this.bbox = bbox;
         this.depth = depth;

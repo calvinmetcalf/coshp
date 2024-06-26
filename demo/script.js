@@ -1,7 +1,9 @@
 import COSHP from '../index.js';
-const coshp = new COSHP('test/tracts-ordered');
+const coshp = new COSHP('test/blockgroups-ordered');
 
-var map = L.map('map').setView([42.358, -71.0545], 16);
+var map = L.map('map', {
+    minZoom: 14
+}).setView([42.358, -71.0545], 16);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -23,4 +25,17 @@ const getShps = async () => {
 // map.on('moveend zoomend', getShps);
 getShps().then(() => {
     console.log('loaded')
+})
+var info = L.control();
+
+info.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+    this._div.innerHTML = '<button id="clicker">Click to rerun query</button>';
+    return this._div;
+};
+
+info.addTo(map);
+const button = L.DomUtil.get('clicker');
+button.addEventListener('click', async () => {
+    await getShps();
 })

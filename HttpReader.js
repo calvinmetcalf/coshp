@@ -2,6 +2,9 @@
 const extentions = new Set(['shp', 'dbf', 'cpg', 'prj', 'shx', 'qix']);
 export default class FileReader {
     constructor(path) {
+        if (path.endsWith('.shp')) {
+            path = path.slice(0, -4);
+        }
         this.base = path;
     }
     makePath(ext) {

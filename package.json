@@ -1,23 +1,21 @@
 {
   "name": "coshp",
   "version": "1.0.0",
-  "description": "## API",
+  "description": "Cloud Optimized Shape File Reader",
   "type": "module",
   "main": "index.js",
+  "bin": "bin.js",
   "scripts": {
     "build": "rollup -c"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "iconv-lite": "^0.6.3",
     "proj4": "^2.11.0"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "rollup": "^4.18.0",
-    "rollup-plugin-node-polyfills": "^0.2.1",
     "yargs": "^17.7.2"
   }
 }
