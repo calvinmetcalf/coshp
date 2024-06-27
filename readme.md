@@ -1,6 +1,6 @@
 # cloud optimized shapefile
 
-A library to query shapefiles that have been sorted geographically via a `.qix` file, based on the idea from [Paul Ramsey](http://blog.cleverelephant.ca/2022/04/coshp.html).
+A library to optimize shapefiles to the cloud and then query them remotely via HTTP. Provides tools to generate `.qix` geoindex files, sort shapefies geographically based on their order in the `.qix` file, and query shapefiles remotely by bounding box. Based on the idea from [Paul Ramsey](http://blog.cleverelephant.ca/2022/04/coshp.html).
 
 ## API
 
@@ -35,7 +35,7 @@ and it will output the reordered file at `./path/to/shape-ordered.shp`
 
 ### does it work? 
 
-Probably
+YES!
 
 ### why? 
 
