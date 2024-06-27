@@ -39,7 +39,7 @@ YES!
 
 ### why? 
 
-I was doing research for a talk and [Paul Ramsey](http://blog.cleverelephant.ca/2022/04/coshp.html) nerd sniped me.
+I was doing research for a talk and Paul Ramsey [nerd sniped](https://xkcd.com/356/) me with [this blog post](http://blog.cleverelephant.ca/2022/04/coshp.html).
 
 ### is this a good idea?
 
