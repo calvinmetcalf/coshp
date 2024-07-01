@@ -1,13 +1,8 @@
+/*
+* Based upon https://github.com/mourner/flatbush/blob/5729a98facd94a66038b7772906f78cd22249336/index.js (ISC Vladimir Agafonkin)
+*/
 
-const checkOverlap = (a, b) => {
-    if (b[0] > a[2] || a[0] > b[2]) {
-        return false;
-    }
-    if (b[1] > a[3] || a[1] > b[3]) {
-        return false;
-    }
-    return true;
-}
+
 const updateBbox = (old, nw) => {
     if (nw[0] < old[0]) {
         old[0] = nw[0]
@@ -22,19 +17,50 @@ const updateBbox = (old, nw) => {
         old[3] = nw[3]
     }
 }
+const chunk = (size, target) => {
+    const out = [];
+    const rem = size % target;
+    const num = Math.floor(size / target);
+    let i = 0;
+    while (i < num) {
+        out.push(target);
+        i++;
+    }
+    if (rem > target / 2) {
+        out.push(rem);
+    } else {
+        let j = 0;
+        while (j < rem) {
+            out[j]++;
+            j++;
+        }
+    }
+    return out;
+};
 class QixNode {
-    constructor(maxDepth, bbox, depth, splitSize = 4) {
-        this.maxDepth = maxDepth;
-        this.bbox = bbox;
-        this.depth = depth;
-        this.splitSize = splitSize;
+    constructor(ids, children = []) {
         this.ids = [];
         this.idBbox = [];
-        this.children = [];
-        this.leaf = this.maxDepth === this.depth;
-        this.length = null;
-        this.totalLength = null;
-        this.maxDepth;
+        this.bbox = [Infinity, Infinity, -Infinity, -Infinity]
+        for (const id of ids) {
+            this.ids.push(id.id);
+            this.idBbox.push(id.bbox);
+            updateBbox(this.bbox, id.bbox);
+        }
+        this.children = children
+        this.leaf = !this.children.length;
+        this.length = (44 + this.ids.length * 4);
+        this.totalLength = this.length;
+        this.height = 1;
+
+        if (!this.leaf) {
+            for (const child of this.children) {
+                this.height = Math.max(this.height, child.height);
+                this.totalLength += child.totalLength;
+                updateBbox(this.bbox, child.bbox);
+            }
+            this.height++;
+        }
     }
     intersects(bbox) {
         return checkOverlap(bbox, this.bbox);
@@ -66,194 +92,65 @@ class QixNode {
         }
         return;
     }
-    tidyBbox() {
-        const bbox = [Infinity, Infinity, -Infinity, -Infinity]
-        for (const idBbox of this.idBbox) {
-            updateBbox(bbox, idBbox)
-        }
-        if (this.children.length) {
-            for (const child of this.children) {
-                updateBbox(bbox, child.bbox);
-            }
-        }
-        this.bbox = bbox;
-        this.length = (44 + this.ids.length * 4);
-        this.totalLength = this.length;
-        this.maxDepth = this.depth;
-        if (this.leaf) {
-            return;
-        }
-        for (const child of this.children) {
-            this.maxDepth = Math.max(this.maxDepth, child.maxDepth);
-            this.totalLength += child.totalLength;
-        }
-    }
-    tidy() {
-        if (this.leaf) {
-            if (!this.ids.length) {
-                return { status: 'delete' }
-            }
-            if (this.ids.length === 1) {
-                return {
-                    status: 'single',
-                    id: this.ids[0],
-                    bbox: this.idBbox[0]
-                }
-            }
-            this.tidyBbox();
-            return {
-                status: 'ok',
-                node: this
-            }
-        }
-        const newChildren = [];
-        for (const child of this.children) {
-            const updated = child.tidy();
-            if (updated.status === 'delete') {
-                continue;
-            }
-            if (updated.status === 'single') {
-                this.ids.push(updated.id);
-                this.idBbox.push(updated.bbox);
-                continue;
-            }
-            if (updated.status === 'ok') {
-                newChildren.push(updated.node)
-                continue;
-            }
-            throw new Error('should not get here', updated);
-        }
-        if (!newChildren.length) {
-            this.leaf = true;
-            this.children = [];
-            return this.tidy();
-        }
-        if (newChildren.length === 1) {
-            const onlyChild = newChildren[0];
-            if (!this.ids.length) {
-                return {
-                    status: 'ok',
-                    node: onlyChild
-                }
-            }
-            this.ids.push(...onlyChild.ids);
-            this.idBbox.push(...onlyChild.idBbox)
-            this.leaf = onlyChild.leaf;
-            this.children = onlyChild.children;
-            this.tidyBbox();
-            return {
-                status: 'ok',
-                node: this
-            }
-        }
-        this.children = newChildren;
-        this.tidyBbox();
-        return {
-            status: 'ok',
-            node: this
-        }
-
-    }
-    insert(bbox, id) {
-        if (this.leaf) {
-            this.ids.push(id);
-            this.idBbox.push(bbox);
-            return;
-        }
-        let match = null;
-        for (const child of this.children) {
-            if (child.intersects(bbox)) {
-                if (match) {
-                    this.ids.push(id);
-                    this.idBbox.push(bbox);
-                    return;
-                }
-                match = child;
-            }
-        }
-        if (!match) {
-            // probably shouldn't get here
-            this.ids.push(id);
-            this.idBbox.push(bbox);
-            return;
-        }
-        match.insert(bbox, id);
-    }
-    createChildren() {
-        if (this.leaf) {
-            return;
-        }
-        const xHeight = this.bbox[2] - this.bbox[0];
-        const yHeight = this.bbox[3] - this.bbox[1];
-        const childBoxes = [];
-        if (this.splitSize === 2) {
-            if (xHeight > yHeight) {
-                const xMid = this.bbox[0] + (xHeight) / 2;
-                childBoxes.push([this.bbox[0], this.bbox[1], xMid, this.bbox[3]]);
-                childBoxes.push([xMid, this.bbox[1], this.bbox[2], this.bbox[3]]);
-            } else {
-                const yMid = this.bbox[1] + (yHeight) / 2;
-                childBoxes.push([this.bbox[0], this.bbox[1], this.bbox[2], yMid]);
-                childBoxes.push([this.bbox[0], yMid, this.bbox[2], this.bbox[3]]);
-            }
-        } else if (this.splitSize === 4) {
-            const xMid = this.bbox[0] + (xHeight) / 2;
-            const yMid = this.bbox[1] + (yHeight) / 2;
-            childBoxes.push([this.bbox[0], this.bbox[1], xMid, yMid]);
-            childBoxes.push([xMid, yMid, this.bbox[2], this.bbox[3]]);
-            childBoxes.push([xMid, this.bbox[1], this.bbox[2], yMid]);
-            childBoxes.push([this.bbox[0], yMid, xMid, this.bbox[3]]);
-        }
-        for (const bbox of childBoxes) {
-            const child = new QixNode(this.maxDepth, bbox, this.depth + 1, this.splitSize);
-            child.createChildren();
-            this.children.push(child);
-        }
-    }
 }
 
 class Qix {
-    constructor(splitSize = 2) {
+    constructor(nodeSize = 4, leafSize = 8) {
         this.offset = 100;
         this.bbox = [Infinity, Infinity, -Infinity, -Infinity]
         this.rows = [];
         this.root = null;
-        this.splitSize = splitSize;
+        this.nodeSize = nodeSize;
+        this.leafSize = leafSize;
         this.maxDepth = null;
     }
     updateBbox(bbox) {
         updateBbox(this.bbox, bbox);
     }
-    calculateMaxDepth() {
-        let maxDepth = 0;
-        const numShapes = this.rows.length;
-        let nodes = 1;
-
-        while (nodes * 4 < numShapes) {
-            maxDepth += 1;
-            nodes *= 2;
-        }
-        this.maxDepth = maxDepth;
-    }
     createTree() {
-        if (this.maxDepth === 0) {
-            throw new Error('bad depth');
+        const width = (this.bbox[2] - this.bbox[0]) || 1;
+        const height = (this.bbox[3] - this.bbox[1]) || 1;
+        const hilbertMax = (1 << 16) - 1;
+
+        this.rows.forEach(row => {
+            const x = Math.floor(hilbertMax * ((row.bbox[0] + row.bbox[2]) / 2 - this.bbox[0]) / width);
+            const y = Math.floor(hilbertMax * ((row.bbox[1] + row.bbox[3]) / 2 - this.bbox[1]) / height);
+            row.hilbert = hilbert(x, y);
+        });
+        this.rows.sort((a, b) =>
+            a.hilbert - b.hilbert
+        );
+        let treeRow = [];
+        const arrayChunks = chunk(this.rows.length, this.leafSize);
+        let i = 0;
+        for (const chunkSize of arrayChunks) {
+            let target = i + chunkSize;
+            let item = [];
+            while (i < target) {
+                item.push(this.rows[i++])
+            }
+            treeRow.push(new QixNode(item));
         }
-        this.root = new QixNode(this.maxDepth, this.bbox, 1, this.splitSize);
-        this.root.createChildren();
-        for (const { id, bbox } of this.rows) {
-            this.root.insert(bbox, id);
+        while (treeRow.length > this.nodeSize) {
+            const prevRow = treeRow;
+            treeRow = [];
+            const arrayChunks = chunk(prevRow.length, this.nodeSize);
+            let i = 0;
+            for (const chunkSize of arrayChunks) {
+                let target = i + chunkSize;
+                let item = [];
+                while (i < target) {
+                    item.push(prevRow[i++])
+                }
+                treeRow.push(new QixNode([], item));
+            }
         }
-        const result = this.root.tidy();
-        if (result.status === 'delete') {
-            throw new Error('empty shapefile')
+        if (treeRow.length === 1) {
+            this.root = treeRow[0];
+        } else {
+            this.root = new QixNode([], treeRow);
         }
-        if (result.status === 'single') {
-            throw new Error('does not work on shapefiles with only one row');
-        }
-        if (result.status === 'ok') {
-            this.root = result.node;
-        }
+
     }
     outputBinary(byteOrder = false) {
         const length = 16 + this.root.totalLength;
@@ -265,7 +162,7 @@ class Qix {
         const byteOrdermark = byteOrder ? 1 : 2;
         view.setUint8(3, byteOrdermark);
         view.setUint32(8, this.rows.length, byteOrder);
-        view.setUint32(12, this.root.maxDepth, byteOrder);
+        view.setUint32(12, this.root.height, byteOrder);
         this.root.serialize(byteOrder, view, 16);
         return view;
     }
@@ -319,11 +216,61 @@ class Qix {
         }
     }
 }
-
-export default (data, splitSize) => {
-    const qix = new Qix(splitSize);
+export default (data, nodeSize, leafSize) => {
+    const qix = new Qix(nodeSize, leafSize);
     qix.injestShp(data);
-    qix.calculateMaxDepth();
     qix.createTree();
     return qix.outputBinary();
+}
+
+
+/**
+ * Fast Hilbert curve algorithm by http://threadlocalmutex.com/
+ * Ported from C++ https://github.com/rawrunprotected/hilbert_curves (public domain)
+ * taken from https://github.com/mourner/flatbush/blob/5729a98facd94a66038b7772906f78cd22249336/index.js (ISC, Vladimir Agafonkin)
+ */
+function hilbert(x, y) {
+    let a = x ^ y;
+    let b = 0xFFFF ^ a;
+    let c = 0xFFFF ^ (x | y);
+    let d = x & (y ^ 0xFFFF);
+
+    let A = a | (b >> 1);
+    let B = (a >> 1) ^ a;
+    let C = ((c >> 1) ^ (b & (d >> 1))) ^ c;
+    let D = ((a & (c >> 1)) ^ (d >> 1)) ^ d;
+
+    a = A; b = B; c = C; d = D;
+    A = ((a & (a >> 2)) ^ (b & (b >> 2)));
+    B = ((a & (b >> 2)) ^ (b & ((a ^ b) >> 2)));
+    C ^= ((a & (c >> 2)) ^ (b & (d >> 2)));
+    D ^= ((b & (c >> 2)) ^ ((a ^ b) & (d >> 2)));
+
+    a = A; b = B; c = C; d = D;
+    A = ((a & (a >> 4)) ^ (b & (b >> 4)));
+    B = ((a & (b >> 4)) ^ (b & ((a ^ b) >> 4)));
+    C ^= ((a & (c >> 4)) ^ (b & (d >> 4)));
+    D ^= ((b & (c >> 4)) ^ ((a ^ b) & (d >> 4)));
+
+    a = A; b = B; c = C; d = D;
+    C ^= ((a & (c >> 8)) ^ (b & (d >> 8)));
+    D ^= ((b & (c >> 8)) ^ ((a ^ b) & (d >> 8)));
+
+    a = C ^ (C >> 1);
+    b = D ^ (D >> 1);
+
+    let i0 = x ^ y;
+    let i1 = b | (0xFFFF ^ (i0 | a));
+
+    i0 = (i0 | (i0 << 8)) & 0x00FF00FF;
+    i0 = (i0 | (i0 << 4)) & 0x0F0F0F0F;
+    i0 = (i0 | (i0 << 2)) & 0x33333333;
+    i0 = (i0 | (i0 << 1)) & 0x55555555;
+
+    i1 = (i1 | (i1 << 8)) & 0x00FF00FF;
+    i1 = (i1 | (i1 << 4)) & 0x0F0F0F0F;
+    i1 = (i1 | (i1 << 2)) & 0x33333333;
+    i1 = (i1 | (i1 << 1)) & 0x55555555;
+
+    return ((i1 << 1) | i0) >>> 0;
 }

@@ -106,18 +106,14 @@ export default class COSHP {
             if (len === 0) {
                 currentOffset += 8;
                 out.push(null);
-                console.log('early exit')
                 continue;
             }
             if (currentOffset + len > dataLength) {
-                console.log('cld', currentOffset, len, dataLength)
-                console.log('middle exit')
                 return out;
             }
             currentOffset += 8;
             const rowView = new DataView(data.buffer, currentOffset, len);
             currentOffset += len;
-            console.log('row')
             out.push(this.shpReader.getRow(rowView));
         }
         return out;
@@ -200,21 +196,28 @@ export default class COSHP {
         const queryIds = consolidateIds(ids);
         console.log('queryIds', queryIds)
         const out = [];
+        let filtered = 0;
         for (const idSet of queryIds) {
             if (idSet.type === 'range') {
                 const { features } = await this.getByIdRange(idSet.start, idSet.end);
                 for (const feature of features) {
                     if (feature?.geometry?.bbox && checkOverlap(feature.geometry.bbox, bbox)) {
                         out.push(feature)
+                    } else {
+                        filtered++;
                     }
                 }
             } else {
                 const row = await this.getById(idSet.id);
                 if (row?.geometry?.bbox && checkOverlap(row.geometry.bbox, bbox)) {
                     out.push(row);
+                } else {
+                    filtered++;
                 }
             }
         }
+        // console.log('filtered', filtered);
+
         return {
             type: 'FeatureCollection',
             features: out

@@ -1,6 +1,6 @@
 # cloud optimized shapefile
 
-A library to optimize shapefiles to the cloud and then query them remotely via HTTP. Provides tools to generate `.qix` geoindex files, sort shapefies geographically based on their order in the `.qix` file, and query shapefiles remotely by bounding box. Based on the idea from [Paul Ramsey](http://blog.cleverelephant.ca/2022/04/coshp.html).
+A library to optimize shapefiles to the cloud and then query them remotely via HTTP, like how cloud optimized geotiffs allow this for imagery. Provides tools to generate `.qix` geoindex files, sort shapefies geographically based on their order in the `.qix` file, and query shapefiles remotely by bounding box. Based on the idea from [Paul Ramsey](http://blog.cleverelephant.ca/2022/04/coshp.html).
 
 ## API
 
@@ -48,5 +48,4 @@ probably not
 
 ## todo
 
-- better `.qix` file generation
 - partial loading of `.qix` files
