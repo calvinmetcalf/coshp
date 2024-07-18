@@ -2,6 +2,7 @@ import HttpReader from './HttpReader.js'
 import ShpReader from './ShpReader.js';
 import DbfReader from './DbfReader.js'
 import proj4 from './dist/proj4.js';
+import pmap from './pmap.js'
 import { queryQix, parseQix, consolidateIds, checkOverlap } from './parseQix.js'
 export default class COSHP {
     constructor(reader) {
@@ -195,27 +196,28 @@ export default class COSHP {
         const ids = queryQix(this.qixTree, bbox);
         const queryIds = consolidateIds(ids);
         console.log('queryIds', queryIds)
-        const out = [];
-        let filtered = 0;
-        for (const idSet of queryIds) {
+        const results = await pmap(queryIds, async (idSet) => {
             if (idSet.type === 'range') {
                 const { features } = await this.getByIdRange(idSet.start, idSet.end);
+                const out = [];
                 for (const feature of features) {
                     if (feature?.geometry?.bbox && checkOverlap(feature.geometry.bbox, bbox)) {
                         out.push(feature)
-                    } else {
-                        filtered++;
                     }
+                }
+                if (out.length) {
+                    return out;
                 }
             } else {
                 const row = await this.getById(idSet.id);
                 if (row?.geometry?.bbox && checkOverlap(row.geometry.bbox, bbox)) {
-                    out.push(row);
+                    return [row];
                 } else {
-                    filtered++;
+                    return;
                 }
             }
-        }
+        })
+        const out = results.filter(item => item).flat();
         // console.log('filtered', filtered);
 
         return {
