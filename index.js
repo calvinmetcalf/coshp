@@ -3,7 +3,7 @@ import ShpReader from './ShpReader.js';
 import DbfReader from './DbfReader.js'
 import proj4 from './dist/proj4.js';
 import pmap from './pmap.js'
-import { queryQix, parseQix, consolidateIds, checkOverlap } from './parseQix.js'
+import { QixReader, checkOverlap } from './QixReader.js'
 export default class COSHP {
     constructor(reader) {
         if (typeof reader === 'string') {
@@ -186,15 +186,13 @@ export default class COSHP {
         return this.shpReader.getRow(data);
     }
     async setUpQix() {
-        const rawQix = await this.reader.readAll('qix', true);
-        this.qixTree = parseQix(rawQix);
+        this.qixTree = new QixReader(this.reader);
     }
     async query(bbox) {
         if (!this.qixTree) {
             await this.setUpQix();
         }
-        const ids = queryQix(this.qixTree, bbox);
-        const queryIds = consolidateIds(ids);
+        const queryIds = await this.qixTree.query(bbox);
         console.log('queryIds', queryIds)
         const results = await pmap(queryIds, async (idSet) => {
             if (idSet.type === 'range') {
