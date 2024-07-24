@@ -143,3 +143,16 @@ export const consolidateIds = (ids) => {
     out.push(prev);
     return out;
 }
+export class EagerQix {
+    constructor(reader) {
+        this.reader = reader;
+    }
+    init() {
+        const data = this.reader.readAll('qix', true);
+        this.tree = parseQix(data);
+    }
+    query(bbox) {
+        const ids = queryQix(tree, bbox);
+        return consolidateIds(ids);
+    }
+}

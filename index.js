@@ -3,14 +3,17 @@ import ShpReader from './ShpReader.js';
 import DbfReader from './DbfReader.js'
 import proj4 from './dist/proj4.js';
 import pmap from './pmap.js'
-import { QixReader, checkOverlap } from './QixReader.js'
+import { QixReader } from './QixReader.js'
+import checkOverlap from './checkOverlap.js';
+import { EagerQix } from './parseQix.js';
 export default class COSHP {
-    constructor(reader) {
+    constructor(reader, eager) {
         if (typeof reader === 'string') {
             this.reader = new HttpReader(reader);
         } else {
             this.reader = reader;
         }
+        this.eager = eager;
         this.shpReader = null;
         this.dbfReader = null;
         this.qixTree = null;
@@ -186,7 +189,12 @@ export default class COSHP {
         return this.shpReader.getRow(data);
     }
     async setUpQix() {
-        this.qixTree = new QixReader(this.reader);
+        if (this.eager) {
+            this.qixTree = new EagerQix(this.reader);
+        } else {
+            this.qixTree = new QixReader(this.reader);
+        }
+
     }
     async query(bbox) {
         if (!this.qixTree) {
@@ -202,6 +210,7 @@ export default class COSHP {
                     if (feature?.geometry?.bbox && checkOverlap(feature.geometry.bbox, bbox)) {
                         out.push(feature)
                     }
+                    console.log('multi', feature)
                 }
                 if (out.length) {
                     return out;
@@ -211,6 +220,7 @@ export default class COSHP {
                 if (row?.geometry?.bbox && checkOverlap(row.geometry.bbox, bbox)) {
                     return [row];
                 } else {
+                    console.log('sing', feature)
                     return;
                 }
             }

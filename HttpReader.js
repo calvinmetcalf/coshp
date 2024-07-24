@@ -29,7 +29,7 @@ export default class FileReader {
         const path = this.makePath(type);
         const req = await fetch(path, {
             headers: {
-                range: `bytes=${offset}-${offset + length}`
+                range: `bytes=${offset}-${offset + length - 1}`
             }
         });
         if (req.status > 299) {

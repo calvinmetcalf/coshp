@@ -1,58 +1,8 @@
+import checkOverlap from './checkOverlap.js';
+import { consolidateIds } from './consolidate-ids.js';
 const DEFAULT_ID_FETCH = 8;
-export const consolidateIds = (ids) => {
-    ids.sort((a, b) => a - b);
-    const out = [];
-    let prev;
-    let i = -1;
-    while (++i < ids.length) {
-        const cur = ids[i];
-        if (!prev) {
-            prev = {
-                type: 'single',
-                id: cur
-            }
-            continue;
-        }
-        if (prev.type === 'single') {
-            if (prev.id + 1 === cur) {
-                prev = {
-                    type: 'range',
-                    start: prev.id,
-                    end: cur
-                }
-            } else {
-                out.push(prev);
-                prev = {
-                    type: 'single',
-                    id: cur
-                }
-            }
-            continue;
-        }
-        if (prev.type === 'range') {
-            if (prev.end + 1 === cur) {
-                prev.end = cur;
-            } else {
-                out.push(prev);
-                prev = {
-                    type: 'single',
-                    id: cur
-                }
-            }
-        }
-    }
-    out.push(prev);
-    return out;
-}
-export const checkOverlap = (a, b) => {
-    if (b[0] > a[2] || a[0] > b[2]) {
-        return false;
-    }
-    if (b[1] > a[3] || a[1] > b[3]) {
-        return false;
-    }
-    return true;
-}
+
+
 class QixNode {
     constructor(height, parent, order) {
         this.height = height;
@@ -121,7 +71,6 @@ class QixNode {
             }
         }
         let i = 0;
-        console.log("root children", this.numChildren);
         while (i < this.numChildren) {
             this.children.push(new QixNode(this.height + 1, this, i));
             i++;
@@ -139,7 +88,7 @@ class QixNode {
             }
             this.offset = sib.nextSib + sib.offset + 40;
         }
-        const view = await this.getSlice(this.offset, 44 + DEFAULT_ID_FETCH * 4);
+        const view = await this.#getView();
         this.nextSib = view.getUint32(0, this.endian);
         this.bbox = [
             view.getFloat64(4, this.endian),
@@ -176,6 +125,7 @@ class QixNode {
             i++;
         }
         this.firstChild = this.offset + 44 + 4 * this.numShapes;
+        this.#handleOverFlow(view);
     }
     async #getSib() {
         if (this.root || this.order === 0) {
@@ -198,6 +148,53 @@ class QixNode {
             children: this.children.toReversed(),
             ids: this.ids
         }
+    }
+    #handleOverFlow(view) {
+        if (this.numShapes >= DEFAULT_ID_FETCH) {
+            return;
+        }
+        if (this.numChildren === 0 && this.order + 1 === this.parent.numChildren) {
+            // we don't have any children and we don't have any younger siblings so it's too complicated to bother
+            return;
+        }
+        const overflow = (DEFAULT_ID_FETCH - this.numShapes) * 4;
+        const overFlowView = new DataView(view.buffer, view.byteOffset + view.byteLength - overflow, overflow);
+        if (this.numChildren > 0) {
+            this.children[0].setOverFlow(overFlowView);
+            return;
+        }
+        const youngerSib = this.parent.children[this.order + 1];
+        if (!youngerSib) {
+            // should have cought this honestly;
+            return;
+        }
+        youngerSib.setOverFlow(overFlowView);
+    }
+    setOverFlow(view) {
+        if (this.ready || this.readyProm) {
+            return;
+        }
+        this.overflow = view;
+    }
+    async #getView() {
+        if (!this.overflow) {
+            return this.getSlice(this.offset, 44 + DEFAULT_ID_FETCH * 4);
+        }
+        const finalBuffer = new ArrayBuffer(44 + DEFAULT_ID_FETCH * 4);
+        const uint = new Uint8Array(finalBuffer);
+        const overflow = new Uint8Array(this.overflow.buffer, this.overflow.byteOffset, this.overflow.byteLength);
+        let i = -1;
+        while (++i < overflow.byteLength) {
+            uint[i] = overflow[i]
+        }
+        const otherSliceView = await this.getSlice(this.offset + overflow.byteLength, (44 + DEFAULT_ID_FETCH * 4) - overflow.byteLength);
+        const otherSlice = new Uint8Array(otherSliceView.buffer, otherSliceView.byteOffset, otherSliceView.byteLength);
+        i = -1;
+        while (++i < otherSlice.byteLength) {
+            uint[i + overflow.byteLength] = otherSlice[i]
+        }
+        return new DataView(finalBuffer);
+
     }
 }
 

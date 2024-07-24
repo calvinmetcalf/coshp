@@ -17,7 +17,7 @@ const copyDBFHEader = async (out, coshp) => {
         await coshp.createDbfReader();
     }
     const len = coshp.dbfReader.header.headerLen;
-    const data = await coshp.reader.read('dbf', 0, len);
+    const data = await coshp.reader.read('dbf', 0, len + 1); // yes there is one extra byte
     out.write(new Uint8Array(data.buffer));
 }
 const packShx = (offset, length) => {

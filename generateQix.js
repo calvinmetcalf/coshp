@@ -19,22 +19,28 @@ const updateBbox = (old, nw) => {
 }
 const chunk = (size, target) => {
     const out = [];
-    const rem = size % target;
+    let rem = size % target;
     const num = Math.floor(size / target);
     let i = 0;
     while (i < num) {
         out.push(target);
         i++;
     }
+
     if (rem > target / 2) {
         out.push(rem);
-    } else {
-        let j = 0;
-        while (j < rem) {
-            out[j]++;
-            j++;
+        return out;
+    }
+    i = out.length - 1;
+    while (rem <= target / 2) {
+        rem++;
+        out[i]--;
+        i--;
+        if (i < 0) {
+            i = out.length - 1;
         }
     }
+    out.push(rem);
     return out;
 };
 class QixNode {
