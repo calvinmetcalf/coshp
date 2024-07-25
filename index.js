@@ -6,6 +6,14 @@ import pmap from './pmap.js'
 import { QixReader } from './QixReader.js'
 import checkOverlap from './checkOverlap.js';
 import { EagerQix } from './parseQix.js';
+const fixBbox = bbox => {
+    return bbox.map(item => {
+        if (typeof item === 'string') {
+            return parseFloat(item)
+        }
+        return item;
+    })
+}
 export default class COSHP {
     constructor(reader, eager) {
         if (typeof reader === 'string') {
@@ -69,7 +77,7 @@ export default class COSHP {
         const start = startOffset.offset;
         const endPosition = endOffset.offset + endOffset.len;
         const readLength = endPosition - start;
-        const numRecs = endId - startId;
+        const numRecs = endId - startId + 1;
         const data = await this.reader.read('dbf', start, readLength);
         let offset = 0;
         let recLen = this.dbfReader.header.recLen;
@@ -82,9 +90,12 @@ export default class COSHP {
         return out;
     }
     async getShpById(id) {
+        if (!this.shpReader) {
+            await this.createShpReader();
+        }
         const { offset, length } = await this.getOffset(id);
         const data = await this.reader.read('shp', (offset + 4) * 2, length * 2);
-        const geometry = await this.parseGeometry(data);
+        const geometry = this.shpReader.getRow(data);
         return geometry;
     }
     async getShpByIdRange(startID, endID) {
@@ -104,7 +115,7 @@ export default class COSHP {
         const out = [];
         const dataLength = data.byteLength;
         let currentOffset = 0;
-        let currentRecord = 0;
+        let currentRecord = -1;
         while (++currentRecord < numRecs) {
             const len = data.getInt32(currentOffset + 4) << 1;
             if (len === 0) {
@@ -189,28 +200,32 @@ export default class COSHP {
         return this.shpReader.getRow(data);
     }
     async setUpQix() {
-        if (this.eager) {
+        if (this.eager === 'old') {
             this.qixTree = new EagerQix(this.reader);
+            await this.qixTree.init();
         } else {
-            this.qixTree = new QixReader(this.reader);
+            this.qixTree = new QixReader(this.reader, this.eager !== 'lazy');
         }
-
     }
-    async query(bbox) {
+    async query(bboxRaw) {
         if (!this.qixTree) {
             await this.setUpQix();
         }
+        const bbox = fixBbox(bboxRaw)
         const queryIds = await this.qixTree.query(bbox);
-        console.log('queryIds', queryIds)
         const results = await pmap(queryIds, async (idSet) => {
             if (idSet.type === 'range') {
                 const { features } = await this.getByIdRange(idSet.start, idSet.end);
+                let start = idSet.start - 1;
                 const out = [];
                 for (const feature of features) {
+                    start++;
                     if (feature?.geometry?.bbox && checkOverlap(feature.geometry.bbox, bbox)) {
                         out.push(feature)
+                        feature.id = start;
                     }
-                    console.log('multi', feature)
+
+                    // console.log('multi', feature)
                 }
                 if (out.length) {
                     return out;
@@ -218,9 +233,12 @@ export default class COSHP {
             } else {
                 const row = await this.getById(idSet.id);
                 if (row?.geometry?.bbox && checkOverlap(row.geometry.bbox, bbox)) {
+                    row.id = idSet.id;
                     return [row];
                 } else {
-                    console.log('sing', feature)
+                    // console.log('filtered', idSet.id);
+                    // return [row]
+                    // console.log('sing', feature)
                     return;
                 }
             }
@@ -233,5 +251,9 @@ export default class COSHP {
             features: out
         }
     }
-
+    async close() {
+        if (this.reader.close) {
+            await this.reader.close();
+        }
+    }
 }

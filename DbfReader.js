@@ -46,6 +46,9 @@ export default class DbfReader {
             const header = this.rowHeaders[i];
             const field = this.rowFuncs(buffer, offset, header.len, header.dataType);
             offset += header.len;
+            if (header.name.indexOf('\x00') > -1) {
+                header.name = header.name.slice(0, header.name.indexOf('\x00'))
+            }
             if (typeof field !== 'undefined') {
                 out[header.name] = field;
             }

@@ -13,16 +13,25 @@ class QixNode {
             this.parent = parent;
             this.order = order;
             this.root = false;
-            this.buffer = this.parent.buffer;
             this.endian = this.parent.endian;
+            this.eager = this.parent.eager;
+            if (this.eager) {
+                this.buffer = this.parent.buffer;
+            } else {
+                this.reader = this.parent.reader;
+            }
         } else {
             this.root = true;
-            this.buffer = parent;
+            this.reader = parent;
             this.offset = 16;
+            this.eager = order;
         }
     }
     async getSlice(start, length) {
-        return this.buffer.read('qix', start, length)
+        if (this.eager) {
+            return new DataView(this.buffer.buffer, this.buffer.byteOffset + start, length)
+        }
+        return this.reader.read('qix', start, length)
     }
     async init() {
         if (this.ready) {
@@ -43,6 +52,9 @@ class QixNode {
         return this.readyProm;
     }
     async #rootInit() {
+        if (this.eager) {
+            this.buffer = await this.reader.readAll('qix', true)
+        }
         const view = await this.getSlice(0, 60);
         this.endian = view.getUint8(3) !== 2;
         const offset = 16;
@@ -141,6 +153,7 @@ class QixNode {
         if (!this.ready) {
             await this.init();
         }
+
         if (!checkOverlap(bbox, this.bbox)) {
             return false;
         }
@@ -150,6 +163,10 @@ class QixNode {
         }
     }
     #handleOverFlow(view) {
+        if (this.eager) {
+            // not neaded in this case
+            return;
+        }
         if (this.numShapes >= DEFAULT_ID_FETCH) {
             return;
         }
@@ -199,8 +216,8 @@ class QixNode {
 }
 
 export class QixReader {
-    constructor(reader) {
-        this.tree = new QixNode(0, reader);
+    constructor(reader, eager) {
+        this.tree = new QixNode(0, reader, eager);
     }
     async query(bbox) {
         const output = [];
@@ -220,5 +237,8 @@ export class QixReader {
             }
         }
         return consolidateIds(output)
+    }
+    async init() {
+        await this.tree.init();
     }
 }

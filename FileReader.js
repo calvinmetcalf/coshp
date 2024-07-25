@@ -34,6 +34,8 @@ export default class FileReader {
         const reader = this.readers.get(type);
         const out = new DataView(new ArrayBuffer(length));
         await reader.read(out, 0, length, offset);
+        await reader.close();
+        this.readers.delete(type);
         return out;
     }
     async createReader(type) {
@@ -47,7 +49,8 @@ export default class FileReader {
             throw new Error('already closed');
         }
         this.open = false;
-        for (const [_, reader] of this.readers) {
+        for (const [type, reader] of this.readers) {
+            console.log("cloasing", type)
             await reader.close();
         }
     }

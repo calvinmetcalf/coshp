@@ -1,4 +1,5 @@
 
+import { consolidateIds } from './consolidate-ids.js';
 
 const parse = (data, offset, lilendian) => {
     const out = {};
@@ -98,57 +99,12 @@ export const queryQix = (tree, bbox) => {
     return ids;
 }
 
-export const consolidateIds = (ids) => {
-    ids.sort((a, b) => a - b);
-    const out = [];
-    let prev;
-    let i = -1;
-    while (++i < ids.length) {
-        const cur = ids[i];
-        if (!prev) {
-            prev = {
-                type: 'single',
-                id: cur
-            }
-            continue;
-        }
-        if (prev.type === 'single') {
-            if (prev.id + 1 === cur) {
-                prev = {
-                    type: 'range',
-                    start: prev.id,
-                    end: cur
-                }
-            } else {
-                out.push(prev);
-                prev = {
-                    type: 'single',
-                    id: cur
-                }
-            }
-            continue;
-        }
-        if (prev.type === 'range') {
-            if (prev.end + 1 === cur) {
-                prev.end = cur;
-            } else {
-                out.push(prev);
-                prev = {
-                    type: 'single',
-                    id: cur
-                }
-            }
-        }
-    }
-    out.push(prev);
-    return out;
-}
 export class EagerQix {
     constructor(reader) {
         this.reader = reader;
     }
-    init() {
-        const data = this.reader.readAll('qix', true);
+    async init() {
+        const data = await this.reader.readAll('qix', true);
         this.tree = parseQix(data);
     }
     query(bbox) {

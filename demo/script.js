@@ -1,5 +1,5 @@
 import COSHP from '../index.js';
-const coshp = new COSHP('test/blockgroups-ordered');
+const coshp = new COSHP('test/data/blockgroups-ordered');
 
 var map = L.map('map', {
     minZoom: 14
@@ -9,7 +9,16 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map);
 
-const geojsonLayer = L.geoJSON().addTo(map);
+const geojsonLayer = L.geoJSON({
+    type: 'FeatureCollection', features: []
+}, {
+    onEachFeature(feature, layer) {
+        // does this feature have a property named popupContent?
+        if (feature.properties) {
+            layer.bindPopup(`${feature.id}`);
+        }
+    }
+}).addTo(map);
 // map.on('movestart zoomstart', () => {
 //     geojsonLayer.clearLayers();
 // });

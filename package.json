@@ -10,12 +10,12 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "proj4": "^2.11.0"
-  },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",
+    "proj4": "^2.11.0",
     "rollup": "^4.18.0",
+    "shpjs": "^6.0.1",
+    "tape": "^5.8.1",
     "yargs": "^17.7.2"
   },
   "repository": "calvinmetcalf/coshp"
