@@ -49,8 +49,7 @@ export default class FileReader {
             throw new Error('already closed');
         }
         this.open = false;
-        for (const [type, reader] of this.readers) {
-            console.log("cloasing", type)
+        for (const [_, reader] of this.readers) {
             await reader.close();
         }
     }

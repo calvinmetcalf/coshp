@@ -43,24 +43,6 @@ const chunk = (size, target) => {
     out.push(rem);
     return out;
 };
-const contains = (outer, inner) => {
-    if (!checkOverlap(outer, inner)) {
-        return false;
-    }
-    if (inner[0] < outer[0]) {
-        return false;
-    }
-    if (inner[1] < outer[1]) {
-        return false;
-    }
-    if (inner[2] > outer[2]) {
-        return false;
-    }
-    if (inner[3] > outer[3]) {
-        return false;
-    }
-    return true;
-}
 class QixNode {
     constructor(ids, children = []) {
         this.ids = [];
@@ -85,25 +67,11 @@ class QixNode {
             }
             this.height++;
         }
-        for (const bbox of this.idBbox) {
-            if (!contains(this.bbox, bbox)) {
-                throw new Error('invalid id bbox')
-            }
-        }
-        for (const child of this.children) {
-            if (!contains(this.bbox, child.bbox)) {
-                throw new Error('invalid child bbox')
-            }
-        }
     }
     intersects(bbox) {
         return checkOverlap(bbox, this.bbox);
     }
     serializeSelf(byteOrder, array, offset) {
-        console.log('fileStartOffset', offset);
-        console.log('bbox', this.bbox);
-        console.log('ids', this.ids);
-        console.log("bboxes", this.idBbox)
         array.setUint32(offset, this.totalLength - 40, byteOrder);
         array.setFloat64(offset + 4, this.bbox[0], byteOrder);
         array.setFloat64(offset + 12, this.bbox[1], byteOrder);
