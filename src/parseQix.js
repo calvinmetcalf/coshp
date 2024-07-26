@@ -108,7 +108,7 @@ export class EagerQix {
         this.tree = parseQix(data);
     }
     query(bbox) {
-        const ids = queryQix(tree, bbox);
+        const ids = queryQix(this.tree, bbox);
         return consolidateIds(ids);
     }
 }

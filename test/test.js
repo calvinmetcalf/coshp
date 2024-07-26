@@ -1,25 +1,108 @@
 import query from './bbox-query.js';
 import test from 'tape'
-import COSHP from '../index.js'
-import FileReader from '../FileReader.js'
+import COSHP from '../src/index.js'
+import FileReader from '../src/FileReader.js'
 import shpjs from 'shpjs';
-import { parseData } from '../parseQix.js';
+import { parseData } from '../src/parseQix.js';
 import fs from 'fs/promises'
-const makeCoshp = path => {
-    return new COSHP(new FileReader(`${import.meta.dirname}/data/${path}`))
+const makeCoshp = (path, arg) => {
+    return new COSHP(new FileReader(`${import.meta.dirname}/data/${path}`), arg)
 }
 const bbox = [-71.07169389724733, 42.351566891364364, -71.03729724884035, 42.36442621717192];
-test('basic', async t => {
-    t.plan(1);
+test('filebased', t => {
+    t.test('basic', async t => {
+        t.plan(1);
 
-    const shp = makeCoshp('blockgroups-ordered');
-    const results = await shp.query(bbox);
-    // const results = await query('blockgroups-ordered', bbox);
-    const compare = await query('blockgroups-ordered', bbox);
-    await shp.close();
+        const shp = makeCoshp('blockgroups-ordered', 'old');
+        const results = await shp.query(bbox);
+        // const results = await query('blockgroups-ordered', bbox);
+        const compare = await query('blockgroups-ordered', bbox);
+        await shp.close();
 
-    t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
-})
+        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
+    })
+    t.test('lazy', async t => {
+        t.plan(1);
+
+        const shp = makeCoshp('blockgroups-ordered', 'lazy');
+        const results = await shp.query(bbox);
+        // const results = await query('blockgroups-ordered', bbox);
+        const compare = await query('blockgroups-ordered', bbox);
+        await shp.close();
+
+        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
+    })
+    t.test('eager', async t => {
+        t.plan(1);
+
+        const shp = makeCoshp('blockgroups-ordered', 'eager');
+        const results = await shp.query(bbox);
+        // const results = await query('blockgroups-ordered', bbox);
+        const compare = await query('blockgroups-ordered', bbox);
+        await shp.close();
+
+        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
+    })
+    t.test('block', async t => {
+        t.plan(1);
+
+        const shp = makeCoshp('blockgroups-ordered', 'block');
+        const results = await shp.query(bbox);
+        // const results = await query('blockgroups-ordered', bbox);
+        const compare = await query('blockgroups-ordered', bbox);
+        await shp.close();
+
+        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
+    })
+});
+test('http based', t => {
+    t.test('basic', async t => {
+        t.plan(1);
+        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered', 'old')
+        const results = await shp.query(bbox);
+        // const results = await query('blockgroups-ordered', bbox);
+        const compare = await query('blockgroups-ordered', bbox);
+        await shp.close();
+
+        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
+    })
+    t.test('lazy', async t => {
+        t.plan(1);
+
+        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered', 'lazy')
+
+        const results = await shp.query(bbox);
+        // const results = await query('blockgroups-ordered', bbox);
+        const compare = await query('blockgroups-ordered', bbox);
+        await shp.close();
+
+        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
+    })
+    t.test('eager', async t => {
+        t.plan(1);
+
+        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered', 'eager')
+
+        const results = await shp.query(bbox);
+        // const results = await query('blockgroups-ordered', bbox);
+        const compare = await query('blockgroups-ordered', bbox);
+        await shp.close();
+
+        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
+    })
+    t.test('block', async t => {
+        t.plan(1);
+
+        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered', 'block')
+
+        const results = await shp.query(bbox);
+        // const results = await query('blockgroups-ordered', bbox);
+        const compare = await query('blockgroups-ordered', bbox);
+        await shp.close();
+
+        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
+    })
+});
 // test('qix', async t => {
 //     t.plan(2);
 //     const qixFile = await fs.readFile('./test/data/blockgroups-ordered.qix');

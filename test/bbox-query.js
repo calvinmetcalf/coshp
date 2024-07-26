@@ -1,6 +1,6 @@
 import shpjs from 'shpjs'
 import fs from 'fs/promises'
-import checkOverlap from '../checkOverlap.js';
+import checkOverlap from '../src/checkOverlap.js';
 const getFile = async (file, ext) => fs.readFile(`${import.meta.dirname}/data/${file}.${ext}`);
 
 export default async (file, bbox) => {

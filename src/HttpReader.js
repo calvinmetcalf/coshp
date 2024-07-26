@@ -7,6 +7,15 @@ export default class FileReader {
         }
         this.base = path;
     }
+    async getLength(ext) {
+        const path = this.makePath(type);
+        const req = await fetch(path, { method: 'head' });
+        if (req.ok) {
+            return req.headers.get('content-length');
+        } else {
+            throw new Error(req.statusText)
+        }
+    }
     makePath(ext) {
         if (!extentions.has(ext)) {
             throw new Error('invalid extention');

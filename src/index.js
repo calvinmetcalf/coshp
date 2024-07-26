@@ -1,9 +1,11 @@
 import HttpReader from './HttpReader.js'
 import ShpReader from './ShpReader.js';
 import DbfReader from './DbfReader.js'
-import proj4 from './dist/proj4.js';
+import proj4 from '../dist/proj4.js';
 import pmap from './pmap.js'
 import { QixReader } from './QixReader.js'
+import { QixBlockReader } from './QixBlockReader.js'
+
 import checkOverlap from './checkOverlap.js';
 import { EagerQix } from './parseQix.js';
 const fixBbox = bbox => {
@@ -203,6 +205,8 @@ export default class COSHP {
         if (this.eager === 'old') {
             this.qixTree = new EagerQix(this.reader);
             await this.qixTree.init();
+        } else if (this.eager === 'block') {
+            this.qixTree = new QixBlockReader(this.reader);
         } else {
             this.qixTree = new QixReader(this.reader, this.eager !== 'lazy');
         }

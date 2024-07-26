@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import yargs from 'yargs/yargs'
 import { hideBin } from 'yargs/helpers';
-import buildQix from './generateQix.js';
-import reorder from './reorder.js';
+import buildQix from './src/generateQix.js';
+import reorder from './src/reorder.js';
 import fs from 'fs/promises';
 const argv = yargs(hideBin(process.argv)).argv
 
