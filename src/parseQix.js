@@ -12,7 +12,6 @@ const parse = (data, offset, lilendian) => {
         data.getFloat64(offset + 28, lilendian),
     ]
     out.numShapes = data.getUint32(offset + 36, lilendian);
-
     let i = 0;
     out.ids = [];
     while (i < out.numShapes) {
@@ -25,7 +24,7 @@ const parse = (data, offset, lilendian) => {
     return out;
 }
 
-const makeTree = rows => {
+export const makeTree = rows => {
     let i = 1;
     let root = rows[0]
     let parent = root;
@@ -56,10 +55,13 @@ const makeTree = rows => {
 
 export const parseData = data => {
     let offset = 16;
-    const endian = data.getUint8(3);
+    const endian = data.getUint8(3) !== 2;
+    // console.log('version', data.getUint8(4))
+    // console.log('shapes', data.getUint32(8, endian))
+    // console.log('depth', data.getUint32(12, endian))
     const rows = [];
     while (offset < data.byteLength) {
-        const out = parse(data, offset, endian !== 2);
+        const out = parse(data, offset, endian);
         offset += out.length;
         rows.push(out);
     }

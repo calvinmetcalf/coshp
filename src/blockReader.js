@@ -47,7 +47,7 @@ export class BlockReader {
         const block = await this.getBlock(offset);
         const blockOffset = offset % this.blocksize;
         if (blockOffset + length > this.blocksize) {
-            console.log('split32')
+            // console.log('split32')
             const otherBlock = await this.getBlock(blockOffset + length);
             const overhang = (blockOffset + length) % this.blocksize;
             let a, b, c, d;
@@ -74,7 +74,9 @@ export class BlockReader {
             if (endian) {
                 [a, b, c, d] = [d, c, b, a];
             }
-            return d + c << 1 + b << 2 + a << 3;
+            const out = d + c << 1 + b << 2 + a << 3;
+            console.log('split32', out)
+            return out;
         }
         return block.getUint32(blockOffset, endian);
     }
@@ -94,7 +96,9 @@ export class BlockReader {
                 this.scratchUint8[i] = otherBlock.getUint8(j);
                 i++;
             }
-            return this.scratchView.getFloat64(0, endian);
+            const out = this.scratchView.getFloat64(0, endian);
+            console.log('split64', out)
+            return out;
 
         }
         return block.getFloat64(blockOffset, endian);

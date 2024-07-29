@@ -3,11 +3,10 @@ import ShpReader from './ShpReader.js';
 import DbfReader from './DbfReader.js'
 import proj4 from '../dist/proj4.js';
 import pmap from './pmap.js'
-import { QixReader } from './QixReader.js'
 import { QixBlockReader } from './QixBlockReader.js'
-
-import checkOverlap from './checkOverlap.js';
+import { QixReader } from './QixReader.js'
 import { EagerQix } from './parseQix.js';
+import checkOverlap from './checkOverlap.js';
 const fixBbox = bbox => {
     return bbox.map(item => {
         if (typeof item === 'string') {
@@ -183,7 +182,7 @@ export default class COSHP {
             this.cache.set('prj', proj);
             return proj;
         } catch (e) {
-            console.log('proj err', e);
+            // console.log('proj err', e);
             this.cache.set('prj', false);
             // don't care;
         }
@@ -202,14 +201,9 @@ export default class COSHP {
         return this.shpReader.getRow(data);
     }
     async setUpQix() {
-        if (this.eager === 'old') {
-            this.qixTree = new EagerQix(this.reader);
-            await this.qixTree.init();
-        } else if (this.eager === 'block') {
-            this.qixTree = new QixBlockReader(this.reader);
-        } else {
-            this.qixTree = new QixReader(this.reader, this.eager !== 'lazy');
-        }
+        // this.qixTree = new QixBlockReader(this.reader);
+        this.qixTree = new EagerQix(this.reader)
+        await this.qixTree.init();
     }
     async query(bboxRaw) {
         if (!this.qixTree) {
@@ -238,9 +232,10 @@ export default class COSHP {
                 const row = await this.getById(idSet.id);
                 if (row?.geometry?.bbox && checkOverlap(row.geometry.bbox, bbox)) {
                     row.id = idSet.id;
+                    // console.log('not filtered', row.properties.GEOID)
                     return [row];
                 } else {
-                    // console.log('filtered', idSet.id);
+                    // console.log('filtered', row.properties.GEOID);
                     // return [row]
                     // console.log('sing', feature)
                     return;

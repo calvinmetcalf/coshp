@@ -56,7 +56,7 @@ export default async (path) => {
     await copyDBFHEader(outDbf, coshp);
     await copyHeader(outShx, coshp, 'shx', 100);
     const lilendian = await copyHeader(outQix, coshp, 'qix', 16);
-    let prevIndex = 0;
+    let prevIndex = -1;
     let shpOffset = 50;
     const idset = new Set();
     for (const qixEntry of qixIndex) {
@@ -78,14 +78,14 @@ export default async (path) => {
             prevIndex++;
             const newId = prevIndex;
             newIds.push(newId);
-            const shpDetails = await coshp.getOffset(oldId);
+            const shpDetails = await coshp.getOffset(oldId + 1);
             outShx.write(packShx(shpOffset, shpDetails.length));
             shpOffset += shpDetails.length;
             shpOffset += 4;
             const shpData = await coshp.reader.read('shp', shpDetails.offset * 2, (shpDetails.length + 4) * 2);
             shpData.setUint32(0, newId);
             outShp.write(new Uint8Array(shpData.buffer));
-            const { offset, len } = coshp.dbfReader.getOffset(oldId);
+            const { offset, len } = coshp.dbfReader.getOffset(oldId + 1);
             const data = await coshp.reader.read('dbf', offset, len);
             outDbf.write(new Uint8Array(data.buffer));
         }

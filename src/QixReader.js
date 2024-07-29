@@ -31,6 +31,8 @@ class QixNode {
         if (this.eager) {
             return new DataView(this.buffer.buffer, this.buffer.byteOffset + start, length)
         }
+        console.log('start', start);
+        console.log('lenfth', length)
         return this.reader.read('qix', start, length)
     }
     async init() {
@@ -70,15 +72,19 @@ class QixNode {
             this.numChildren = view.getUint32(offset + 40, this.endian);
         } else {
             this.ids.push(view.getUint32(offset + 40, this.endian));
-            const view2 = await this.getSlice(64, 4 * this.numShapes);
+            const view2 = await this.getSlice(offset + 44, 4 * this.numShapes);
             let i = 0;
-            while (i < this.numChildren) {
+            console.log("this", this.numShapes)
+            while (i < this.numShapes) {
                 const item = view2.getUint32(i * 4, this.endian);
                 i++
-                if (i + 1 === this.numChildren) {
+                console.log('this.ids.length', this.ids.length);
+                if (this.ids.length >= this.numShapes) {
+                    console.log('inside', i, item)
                     this.numChildren = item;
                     break;
                 }
+                console.log('outside', i, item)
                 this.ids.push(item);
             }
         }
@@ -88,6 +94,7 @@ class QixNode {
             i++;
         }
         this.firstChild = 16 + 44 + 4 * this.numShapes;
+        console.log('this', this)
     }
 
     async #nonRootInit() {
@@ -98,7 +105,7 @@ class QixNode {
             if (!sib) {
                 throw new Error('no sibling');
             }
-            this.offset = sib.nextSib + sib.offset + 40;
+            this.offset = sib.nextSib + sib.offset + 40 + 16;
         }
         const view = await this.#getView();
         this.nextSib = view.getUint32(0, this.endian);
@@ -109,6 +116,7 @@ class QixNode {
             view.getFloat64(28, this.endian),
         ]
         this.numShapes = view.getUint32(36, this.endian);
+        console.log('this', this)
         if (this.numShapes <= DEFAULT_ID_FETCH) {
             let i = -1;
             while (++i < this.numShapes) {

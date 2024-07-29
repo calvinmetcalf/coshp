@@ -2,6 +2,7 @@ export const consolidateIds = (ids) => {
     ids.sort((a, b) => a - b);
     const out = [];
     let prev;
+    ids = ids.map(item => item + 1)
     let i = -1;
     while (++i < ids.length) {
         const cur = ids[i];

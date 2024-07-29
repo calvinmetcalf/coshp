@@ -13,7 +13,7 @@ test('filebased', t => {
     t.test('basic', async t => {
         t.plan(1);
 
-        const shp = makeCoshp('blockgroups-ordered', 'old');
+        const shp = makeCoshp('blockgroups-ordered');
         const results = await shp.query(bbox);
         // const results = await query('blockgroups-ordered', bbox);
         const compare = await query('blockgroups-ordered', bbox);
@@ -21,35 +21,14 @@ test('filebased', t => {
 
         t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
     })
-    t.test('lazy', async t => {
+    t.test('maptiler', async t => {
         t.plan(1);
-
-        const shp = makeCoshp('blockgroups-ordered', 'lazy');
+        const shp = makeCoshp('blockgroups-ordered');
         const results = await shp.query(bbox);
         // const results = await query('blockgroups-ordered', bbox);
-        const compare = await query('blockgroups-ordered', bbox);
-        await shp.close();
-
-        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
-    })
-    t.test('eager', async t => {
-        t.plan(1);
-
-        const shp = makeCoshp('blockgroups-ordered', 'eager');
-        const results = await shp.query(bbox);
-        // const results = await query('blockgroups-ordered', bbox);
-        const compare = await query('blockgroups-ordered', bbox);
-        await shp.close();
-
-        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
-    })
-    t.test('block', async t => {
-        t.plan(1);
-
-        const shp = makeCoshp('blockgroups-ordered', 'block');
-        const results = await shp.query(bbox);
-        // const results = await query('blockgroups-ordered', bbox);
-        const compare = await query('blockgroups-ordered', bbox);
+        const shp2 = makeCoshp('blockgroups-mapserver');
+        const compare = await shp2.query(bbox);
+        await shp2.close();
         await shp.close();
 
         t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
@@ -58,7 +37,7 @@ test('filebased', t => {
 test('http based', t => {
     t.test('basic', async t => {
         t.plan(1);
-        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered', 'old')
+        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered')
         const results = await shp.query(bbox);
         // const results = await query('blockgroups-ordered', bbox);
         const compare = await query('blockgroups-ordered', bbox);
@@ -66,38 +45,13 @@ test('http based', t => {
 
         t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
     })
-    t.test('lazy', async t => {
+    t.test('compare maptiler', async t => {
         t.plan(1);
-
-        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered', 'lazy')
-
-        const results = await shp.query(bbox);
+        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered')
+        const shp2 = new COSHP('http://localhost:3000/test/data/blockgroups-mapserver')
         // const results = await query('blockgroups-ordered', bbox);
-        const compare = await query('blockgroups-ordered', bbox);
-        await shp.close();
-
-        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
-    })
-    t.test('eager', async t => {
-        t.plan(1);
-
-        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered', 'eager')
-
         const results = await shp.query(bbox);
-        // const results = await query('blockgroups-ordered', bbox);
-        const compare = await query('blockgroups-ordered', bbox);
-        await shp.close();
-
-        t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())
-    })
-    t.test('block', async t => {
-        t.plan(1);
-
-        const shp = new COSHP('http://localhost:3000/test/data/blockgroups-ordered', 'block')
-
-        const results = await shp.query(bbox);
-        // const results = await query('blockgroups-ordered', bbox);
-        const compare = await query('blockgroups-ordered', bbox);
+        const compare = await shp2.query(bbox);
         await shp.close();
 
         t.deepEqual(results.features.map(item => item.properties.GEOID).sort(), compare.features.map(item => item.properties.GEOID).sort())

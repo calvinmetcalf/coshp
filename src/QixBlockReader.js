@@ -15,12 +15,34 @@ class QixNode {
             this.root = false;
             this.endian = this.parent.endian;
             this.buffer = this.parent.buffer;
+            this.path = `${this.parent.path}${this.order}`
         } else {
             this.root = true;
+            this.path = '0';
             this.buffer = parent;
             this.offset = 16;
             this.eager = order;
         }
+    }
+    toString() {
+        return JSON.stringify({
+            root: this.root,
+            height: this.height,
+            ids: this.ids,
+            order: this.order,
+            endian: this.endian,
+            numChildren: this.numChildren,
+            numShapes: this.numShapes,
+            nextSib: this.nextSib,
+            bbox: this.bbox,
+            firstChild: this.firstChild,
+            nextSib: this.nextSib,
+            offset: this.offset,
+            path: this.path
+        }, false, 2)
+    }
+    toJSON() {
+        return this.toString();
     }
     async init() {
         if (this.ready) {
@@ -29,10 +51,10 @@ class QixNode {
         if (this.readyProm) {
             return this.readyProm
         }
-        this.readyProm = this.#nodeInit();
-        this.readyProm.then(() => {
+        console.log("init", this.path)
+        // console.log(this)
+        this.readyProm = this.#nodeInit().then(() => {
             this.readyProm = null
-            this.ready = true;
         });
         return this.readyProm;
     }
@@ -40,6 +62,9 @@ class QixNode {
     async #nodeInit() {
         if (this.root) {
             this.endian = await this.buffer.getUint8(3) !== 2;
+            console.log('version', await this.buffer.getUint8(4))
+            console.log('shapes', await this.buffer.getUint32(8, this.endian))
+            console.log('depth', await this.buffer.getUint32(12, this.endian))
         } else {
             if (this.order === 0) {
                 this.offset = this.parent.firstChild;
@@ -59,7 +84,12 @@ class QixNode {
             await this.buffer.getFloat64(this.offset + 28, this.endian),
         ]
         this.numShapes = await this.buffer.getUint32(this.offset + 36, this.endian);
-
+        if (this.numShapes > 10000) {
+            console.log('sib', (await this.#getSib()).toString());
+            console.log('parent', this.parent.toString());
+            console.log(this.toString())
+            throw new Error('too many ids');
+        }
         let i = -1;
         while (++i < this.numShapes) {
             this.ids.push(await this.buffer.getUint32(this.offset + 40 + i * 4, this.endian));
@@ -68,6 +98,7 @@ class QixNode {
 
         i = 0;
         if (this.numChildren > 100000) {
+            console.log(this.toString())
             throw new Error('bad')
         }
         while (i < this.numChildren) {
@@ -75,6 +106,8 @@ class QixNode {
             i++;
         }
         this.firstChild = this.offset + 44 + 4 * this.numShapes;
+        // console.log(this.toString())
+        this.ready = true;
 
     }
     async #getSib() {

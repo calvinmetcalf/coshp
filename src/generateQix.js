@@ -80,7 +80,7 @@ class QixNode {
         array.setUint32(offset + 36, this.ids.length, byteOrder);
         let i = 0;
         for (const id of this.ids) {
-            array.setUint32(offset + 40 + (i * 4), id, byteOrder);
+            array.setUint32(offset + 40 + (i * 4), id - 1, byteOrder);
             i++;
         }
         array.setUint32(offset + 40 + (i * 4), this.children.length, byteOrder);
@@ -167,8 +167,11 @@ class Qix {
         view.setUint8(2, 84); 'T';
         const byteOrdermark = byteOrder ? 1 : 2;
         view.setUint8(3, byteOrdermark);
+        view.setUint8(4, 1);
         view.setUint32(8, this.rows.length, byteOrder);
         view.setUint32(12, this.root.height, byteOrder);
+        console.log('recoreds', this.rows.length)
+        console.log('depth', this.root.height)
         this.root.serialize(byteOrder, view, 16);
         return view;
     }
