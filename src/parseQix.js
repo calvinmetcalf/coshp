@@ -67,7 +67,6 @@ export const parseData = data => {
     }
     return rows;
 }
-
 export const parseQix = (data) => {
     const out = parseData(data);
     const tree = makeTree(out);

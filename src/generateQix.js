@@ -72,7 +72,7 @@ class QixNode {
         return checkOverlap(bbox, this.bbox);
     }
     serializeSelf(byteOrder, array, offset) {
-        array.setUint32(offset, this.totalLength - 40, byteOrder);
+        array.setUint32(offset, this.totalLength - 44 - this.ids.length * 4, byteOrder);
         array.setFloat64(offset + 4, this.bbox[0], byteOrder);
         array.setFloat64(offset + 12, this.bbox[1], byteOrder);
         array.setFloat64(offset + 20, this.bbox[2], byteOrder);
@@ -170,8 +170,6 @@ class Qix {
         view.setUint8(4, 1);
         view.setUint32(8, this.rows.length, byteOrder);
         view.setUint32(12, this.root.height, byteOrder);
-        console.log('recoreds', this.rows.length)
-        console.log('depth', this.root.height)
         this.root.serialize(byteOrder, view, 16);
         return view;
     }

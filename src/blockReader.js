@@ -75,7 +75,7 @@ export class BlockReader {
                 [a, b, c, d] = [d, c, b, a];
             }
             const out = d + c << 1 + b << 2 + a << 3;
-            console.log('split32', out)
+            // console.log('split32', out)
             return out;
         }
         return block.getUint32(blockOffset, endian);
@@ -97,7 +97,7 @@ export class BlockReader {
                 i++;
             }
             const out = this.scratchView.getFloat64(0, endian);
-            console.log('split64', out)
+            // console.log('split64', out)
             return out;
 
         }

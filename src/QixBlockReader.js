@@ -51,7 +51,6 @@ class QixNode {
         if (this.readyProm) {
             return this.readyProm
         }
-        console.log("init", this.path)
         // console.log(this)
         this.readyProm = this.#nodeInit().then(() => {
             this.readyProm = null
@@ -62,9 +61,6 @@ class QixNode {
     async #nodeInit() {
         if (this.root) {
             this.endian = await this.buffer.getUint8(3) !== 2;
-            console.log('version', await this.buffer.getUint8(4))
-            console.log('shapes', await this.buffer.getUint32(8, this.endian))
-            console.log('depth', await this.buffer.getUint32(12, this.endian))
         } else {
             if (this.order === 0) {
                 this.offset = this.parent.firstChild;
@@ -73,7 +69,7 @@ class QixNode {
                 if (!sib) {
                     throw new Error('no sibling');
                 }
-                this.offset = sib.nextSib + sib.offset + 40;
+                this.offset = sib.nextSib + sib.offset + 44 + sib.numShapes * 4;
             }
         }
         this.nextSib = await this.buffer.getUint32(this.offset, this.endian);
@@ -85,9 +81,6 @@ class QixNode {
         ]
         this.numShapes = await this.buffer.getUint32(this.offset + 36, this.endian);
         if (this.numShapes > 10000) {
-            console.log('sib', (await this.#getSib()).toString());
-            console.log('parent', this.parent.toString());
-            console.log(this.toString())
             throw new Error('too many ids');
         }
         let i = -1;

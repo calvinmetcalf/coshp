@@ -202,8 +202,8 @@ export default class COSHP {
     }
     async setUpQix() {
         // this.qixTree = new QixBlockReader(this.reader);
-        this.qixTree = new EagerQix(this.reader)
-        await this.qixTree.init();
+        this.qixTree = new QixBlockReader(this.reader)
+        // await this.qixTree.init();
     }
     async query(bboxRaw) {
         if (!this.qixTree) {
