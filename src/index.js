@@ -16,17 +16,17 @@ const fixBbox = bbox => {
     })
 }
 export default class COSHP {
-    constructor(reader, eager) {
+    #cache = new Map()
+    constructor(reader, blocksize) {
         if (typeof reader === 'string') {
             this.reader = new HttpReader(reader);
         } else {
             this.reader = reader;
         }
-        this.eager = eager;
         this.shpReader = null;
         this.dbfReader = null;
         this.qixTree = null;
-        this.cache = new Map();
+        this.blocksize = blocksize;
     }
     async getById(id) {
         const [shp, dbf] = await Promise.all([
@@ -143,9 +143,21 @@ export default class COSHP {
         return { offset, length };
     }
     async createDbfReader() {
+        if (this.dbfReader) {
+            return;
+        }
+        if (this.#cache.has('dbfReaderProm')) {
+            return this.#cache.get('dbfReaderProm')
+        }
+        this.#cache.set('dbfReaderProm', this.#createDbfReader().then(() => {
+            delete this.#cache.delete('dbfReaderProm')
+        }));
+        return this.#cache.get('dbfReaderProm')
+    }
+    async #createDbfReader() {
         const [header, cpg] = await Promise.all([
             this.reader.read('dbf', 0, 12),
-            this.maybeGetCPG()
+            this.#maybeGetCPG()
         ]);
         const dbfReader = new DbfReader(cpg);
         const rowHeaderLen = dbfReader.parseHeaders(header);
@@ -153,44 +165,56 @@ export default class COSHP {
         dbfReader.parseRowHeaders(rowHeaderData);
         this.dbfReader = dbfReader;
     }
-    async maybeGetCPG() {
-        if (this.cache.has('cpg')) {
-            return this.cache.get('cpg');
+    async #maybeGetCPG() {
+        if (this.#cache.has('cpg')) {
+            return this.#cache.get('cpg');
         }
         try {
             const cpg = await this.reader.readAll('cpg');
-            this.cache.set('cpg', cpg);
+            this.#cache.set('cpg', cpg);
             if (!cpg) {
                 return;
             }
             return cpg;
         } catch (e) {
-            this.cache.set('cpg', false);
+            this.#cache.set('cpg', false);
             // don't care
         }
     }
-    async maybeCreateTrans() {
+    async #maybeCreateTrans() {
         try {
             const prjFile = await this.reader.readAll('prj');
             if (!prjFile) {
                 console.log('no proj file')
-                this.cache.set('prj', false);
+                this.#cache.set('prj', false);
                 return;
             }
             const proj = proj4(prjFile);
-            this.cache.set('prj-raw', prjFile)
-            this.cache.set('prj', proj);
+            this.#cache.set('prj-raw', prjFile)
+            this.#cache.set('prj', proj);
             return proj;
         } catch (e) {
             // console.log('proj err', e);
-            this.cache.set('prj', false);
+            this.#cache.set('prj', false);
             // don't care;
         }
     }
     async createShpReader() {
+        if (this.shpReader) {
+            return;
+        }
+        if (this.#cache.has('shpReaderProm')) {
+            return this.#cache.get('shpReaderProm')
+        }
+        this.#cache.set('shpReaderProm', this.#createShpReader().then(() => {
+            delete this.#cache.delete('shpReaderProm')
+        }));
+        return this.#cache.get('shpReaderProm')
+    }
+    async #createShpReader() {
         const [header, trans] = await Promise.all([
             this.reader.read('shp', 0, 100),
-            this.maybeCreateTrans()
+            this.#maybeCreateTrans()
         ]);
         this.shpReader = new ShpReader(header, trans);
     }
@@ -200,17 +224,18 @@ export default class COSHP {
         }
         return this.shpReader.getRow(data);
     }
-    async setUpQix() {
+    async #setUpQix() {
         // this.qixTree = new QixBlockReader(this.reader);
-        this.qixTree = new QixBlockReader(this.reader)
+        this.qixTree = new QixBlockReader(this.reader, this.blocksize)
         // await this.qixTree.init();
     }
     async query(bboxRaw) {
         if (!this.qixTree) {
-            await this.setUpQix();
+            await this.#setUpQix();
         }
         const bbox = fixBbox(bboxRaw)
         const queryIds = await this.qixTree.query(bbox);
+        let filtered = 0;
         const results = await pmap(queryIds, async (idSet) => {
             if (idSet.type === 'range') {
                 const { features } = await this.getByIdRange(idSet.start, idSet.end);
@@ -221,6 +246,8 @@ export default class COSHP {
                     if (feature?.geometry?.bbox && checkOverlap(feature.geometry.bbox, bbox)) {
                         out.push(feature)
                         feature.id = start;
+                    } else {
+                        filtered++;
                     }
 
                     // console.log('multi', feature)
@@ -238,12 +265,13 @@ export default class COSHP {
                     // console.log('filtered', row.properties.GEOID);
                     // return [row]
                     // console.log('sing', feature)
+                    filtered++;
                     return;
                 }
             }
         })
         const out = results.filter(item => item).flat();
-        // console.log('filtered', filtered);
+        console.log('filtered', filtered);
 
         return {
             type: 'FeatureCollection',

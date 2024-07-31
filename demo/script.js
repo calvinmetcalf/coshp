@@ -1,5 +1,5 @@
 import COSHP from '../src/index.js';
-const coshp = new COSHP('test/data/blockgroups-ordered', 'block');
+const coshp = new COSHP('test/data/blockgroups-ordered');
 
 var map = L.map('map', {
     minZoom: 14

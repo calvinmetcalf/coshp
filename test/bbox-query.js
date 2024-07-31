@@ -7,8 +7,8 @@ export default async (file, bbox) => {
     const [shp, dbf, prj, cpg] = await Promise.all([
         getFile(file, 'shp'),
         getFile(file, 'dbf'),
-        getFile(file, 'prj'),
-        getFile(file, 'cpg')
+        getFile(file, 'prj').catch(() => false),
+        getFile(file, 'cpg').catch(() => false)
     ]);
     const geojson = await shpjs({ shp, dbf, prj, cpg });
     if (!bbox) {
