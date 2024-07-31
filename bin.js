@@ -26,6 +26,7 @@ if (command === 'build') {
     const out = buildQix(view);
     const toWrite = new Uint8Array(out.buffer);
     await fs.writeFile(`${path}.qix`, toWrite);
+    console.log(".qix file generated")
     process.exit();
 }
 

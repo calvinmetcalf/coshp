@@ -16,7 +16,6 @@ const fixBbox = bbox => {
     })
 }
 export default class COSHP {
-    #cache = new Map()
     constructor(reader, blocksize) {
         if (typeof reader === 'string') {
             this.reader = new HttpReader(reader);
@@ -27,6 +26,7 @@ export default class COSHP {
         this.dbfReader = null;
         this.qixTree = null;
         this.blocksize = blocksize;
+        this.cache = new Map();
     }
     async getById(id) {
         const [shp, dbf] = await Promise.all([
@@ -146,13 +146,13 @@ export default class COSHP {
         if (this.dbfReader) {
             return;
         }
-        if (this.#cache.has('dbfReaderProm')) {
-            return this.#cache.get('dbfReaderProm')
+        if (this.cache.has('dbfReaderProm')) {
+            return this.cache.get('dbfReaderProm')
         }
-        this.#cache.set('dbfReaderProm', this.#createDbfReader().then(() => {
-            delete this.#cache.delete('dbfReaderProm')
+        this.cache.set('dbfReaderProm', this.#createDbfReader().then(() => {
+            delete this.cache.delete('dbfReaderProm')
         }));
-        return this.#cache.get('dbfReaderProm')
+        return this.cache.get('dbfReaderProm')
     }
     async #createDbfReader() {
         const [header, cpg] = await Promise.all([
@@ -166,18 +166,18 @@ export default class COSHP {
         this.dbfReader = dbfReader;
     }
     async #maybeGetCPG() {
-        if (this.#cache.has('cpg')) {
-            return this.#cache.get('cpg');
+        if (this.cache.has('cpg')) {
+            return this.cache.get('cpg');
         }
         try {
             const cpg = await this.reader.readAll('cpg');
-            this.#cache.set('cpg', cpg);
+            this.cache.set('cpg', cpg);
             if (!cpg) {
                 return;
             }
             return cpg;
         } catch (e) {
-            this.#cache.set('cpg', false);
+            this.cache.set('cpg', false);
             // don't care
         }
     }
@@ -186,16 +186,16 @@ export default class COSHP {
             const prjFile = await this.reader.readAll('prj');
             if (!prjFile) {
                 console.log('no proj file')
-                this.#cache.set('prj', false);
+                this.cache.set('prj', false);
                 return;
             }
             const proj = proj4(prjFile);
-            this.#cache.set('prj-raw', prjFile)
-            this.#cache.set('prj', proj);
+            this.cache.set('prj-raw', prjFile)
+            this.cache.set('prj', proj);
             return proj;
         } catch (e) {
             // console.log('proj err', e);
-            this.#cache.set('prj', false);
+            this.cache.set('prj', false);
             // don't care;
         }
     }
@@ -203,13 +203,13 @@ export default class COSHP {
         if (this.shpReader) {
             return;
         }
-        if (this.#cache.has('shpReaderProm')) {
-            return this.#cache.get('shpReaderProm')
+        if (this.cache.has('shpReaderProm')) {
+            return this.cache.get('shpReaderProm')
         }
-        this.#cache.set('shpReaderProm', this.#createShpReader().then(() => {
-            delete this.#cache.delete('shpReaderProm')
+        this.cache.set('shpReaderProm', this.#createShpReader().then(() => {
+            delete this.cache.delete('shpReaderProm')
         }));
-        return this.#cache.get('shpReaderProm')
+        return this.cache.get('shpReaderProm')
     }
     async #createShpReader() {
         const [header, trans] = await Promise.all([
