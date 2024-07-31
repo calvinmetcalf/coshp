@@ -83,7 +83,7 @@ export default async (path) => {
             shpOffset += shpDetails.length;
             shpOffset += 4;
             const shpData = await coshp.reader.read('shp', shpDetails.offset * 2, (shpDetails.length + 4) * 2);
-            shpData.setUint32(0, newId);
+            shpData.setUint32(0, newId + 1);
             outShp.write(new Uint8Array(shpData.buffer));
             const { offset, len } = coshp.dbfReader.getOffset(oldId + 1);
             const data = await coshp.reader.read('dbf', offset, len);
