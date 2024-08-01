@@ -1,4 +1,4 @@
-import COSHP from '../src/index.js';
+import COSHP from '../coshp.js';
 const coshp = new COSHP('test/data/blockgroups-ordered');
 
 var map = L.map('map', {

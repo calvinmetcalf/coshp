@@ -1,6 +1,6 @@
 import query from './bbox-query.js';
 import test from 'tape'
-import COSHP from '../src/index.js'
+import COSHP from '../coshp.js'
 import FileReader from '../src/FileReader.js'
 import shpjs from 'shpjs';
 import { parseData } from '../src/parseQix.js';

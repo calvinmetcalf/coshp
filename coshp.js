@@ -1,12 +1,12 @@
-import HttpReader from './HttpReader.js'
-import ShpReader from './ShpReader.js';
-import DbfReader from './DbfReader.js'
-import proj4 from '../dist/proj4.js';
-import pmap from './pmap.js'
-import { QixBlockReader } from './QixBlockReader.js'
+import HttpReader from './src/HttpReader.js'
+import ShpReader from './src/ShpReader.js';
+import DbfReader from './src/DbfReader.js'
+import proj4 from './dist/proj4.js';
+import pmap from './src/pmap.js'
+import { QixBlockReader } from './src/QixBlockReader.js'
 // import { QixReader } from './QixReader.js'
 // import { EagerQix } from './parseQix.js';
-import checkOverlap from './checkOverlap.js';
+import checkOverlap from './src/checkOverlap.js';
 const fixBbox = bbox => {
     return bbox.map(item => {
         if (typeof item === 'string') {

@@ -3,7 +3,7 @@
   "version": "2.0.1",
   "description": "Cloud Optimized Shape File Reader",
   "type": "module",
-  "main": "src/index.js",
+  "main": "coshp.js",
   "bin": "bin.js",
   "scripts": {
     "build": "rollup -c",

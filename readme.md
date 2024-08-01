@@ -17,6 +17,12 @@ const coshp = new Coshp('https://example.biz/path/to/shapfile.shp');
 const geojson = coshp.query([xmin, ymin, xmax, ymax]);
 ```
 
+import directly into script:
+
+```js
+import Coshp from 'https://unpkg.com/coshp@latest/coshp.js`
+```
+
 Bounding box should be in the same projection as your file is in, the result is always in WGS84.
 
 You can as a 2nd parameter pass in a block size for the `.qix` file. It currently defaults to 4KiB but it may be changed in the future.
@@ -64,3 +70,10 @@ Version 2.0.0 corrects enough bugs in how .qix files are generated and handled t
 - `.qix` files are now loaded incrementally in user specified blocks defaulting to 4kb.
 - downloading rows from the remote `.shp` and `.dbf` file is now parallelized up to a limit.
 
+# 2.0.1
+
+Small bug fix as I didn't publish 2.0.0 quite right
+
+# 2.0.2
+
+Change the main file name so that you can easily import coshp directly. 

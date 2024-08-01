@@ -1,4 +1,4 @@
-import COSHP from "./index.js";
+import COSHP from "../coshp.js";
 import fs from 'fs/promises';
 import fsNorm from 'fs';
 import { parseData } from "./parseQix.js";
