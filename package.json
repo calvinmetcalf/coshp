@@ -1,6 +1,6 @@
 {
   "name": "coshp",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Cloud Optimized Shape File Reader",
   "type": "module",
   "main": "coshp.js",
