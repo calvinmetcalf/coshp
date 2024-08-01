@@ -4,8 +4,8 @@ import DbfReader from './DbfReader.js'
 import proj4 from '../dist/proj4.js';
 import pmap from './pmap.js'
 import { QixBlockReader } from './QixBlockReader.js'
-import { QixReader } from './QixReader.js'
-import { EagerQix } from './parseQix.js';
+// import { QixReader } from './QixReader.js'
+// import { EagerQix } from './parseQix.js';
 import checkOverlap from './checkOverlap.js';
 const fixBbox = bbox => {
     return bbox.map(item => {
