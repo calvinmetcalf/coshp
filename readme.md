@@ -35,6 +35,8 @@ to add a `.qix` index file you can run the following command
 npx coshp build ./path/to/shape.shp
 ```
 
+optionally you can choose between the bottomup algorythem (default) or the topdown one with the `-a` flag 
+
 then to reorder your shapefile to be queryable via the `.qix` file run
 
 ```bash
@@ -42,6 +44,8 @@ npx coshp reorder  ./path/to/shape.shp
 ```
 
 and it will output the reordered file at `./path/to/shape-ordered.shp`
+
+you can use the `-s` flag to change the suffix to something besides `-ordered`
 
 ## questions
 

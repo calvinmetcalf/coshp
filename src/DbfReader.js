@@ -20,7 +20,7 @@ export default class DbfReader {
         const headerLen = data.byteLength;
         while (offset < headerLen) {
             this.rowHeaders.push({
-                name: this.decoder(new Uint8Array(data.buffer.slice(offset, offset + 11))),
+                name: this.decoder(new Uint8Array(data.buffer, offset, 11)),
                 dataType: String.fromCharCode(data.getUint8(offset + 11)),
                 len: data.getUint8(offset + 16),
                 decimal: data.getUint8(offset + 17)
@@ -33,7 +33,7 @@ export default class DbfReader {
         }
     }
     getOffset(id) {
-        const baseoffset = ((this.rowHeaders.length + 1) << 5) + 2;
+        const baseoffset = ((this.rowHeaders.length + 1) << 5) + 1;
         const len = this.header.recLen;
         const offset = baseoffset + (id - 1) * len;
         return { offset, len }
@@ -42,6 +42,7 @@ export default class DbfReader {
         var out = {};
         var i = 0;
         var len = this.rowHeaders.length;
+        offset++;
         while (i < len) {
             const header = this.rowHeaders[i];
             const field = this.rowFuncs(buffer, offset, header.len, header.dataType);
@@ -57,7 +58,7 @@ export default class DbfReader {
         return out;
     }
     rowFuncs(buffer, offset, len, type) {
-        const data = new Uint8Array(buffer.buffer.slice(offset, offset + len));
+        const data = new Uint8Array(buffer.buffer, offset, len);
         const textData = this.decoder(data);
         switch (type) {
             case 'N':

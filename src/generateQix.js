@@ -43,6 +43,64 @@ const chunk = (size, target) => {
     out.push(rem);
     return out;
 };
+const bboxArea = (bbox) => (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]);
+const calcBbox = (arr) => {
+    const bbox =  [Infinity, Infinity, -Infinity, -Infinity];
+    for (const item of arr) {
+        updateBbox(bbox, item);
+    }
+    return bbox;
+}
+const calcSwap = (left, right) => {
+    const leftArea = bboxArea(left.bbox);
+    const rightArea = bboxArea(right.bbox);
+    const leftBboxShiftDown = [...left.bbox];
+    updateBbox(leftBboxShiftDown, right.idBbox[0]);
+    const rightBboxShiftDown = calcBbox(right.idBbox.slice(1))
+    const leftBboxShiftUp = calcBbox(left.idBbox.slice(0, -1));
+    const rightBboxShiftUp =  [...right.bbox];
+    updateBbox(rightBboxShiftUp, left.idBbox[left.idBbox.length - 1]);
+    const downAreaChange = (bboxArea(leftBboxShiftDown) - leftArea) +  (bboxArea(rightBboxShiftDown) - rightArea);
+    const upAreaChange = (bboxArea(leftBboxShiftUp) - leftArea) +  (bboxArea(rightBboxShiftUp) - rightArea);
+    return [downAreaChange, upAreaChange]
+}
+const maybeSwap = arr=> {
+    let i = 0
+    while (++i < arr.length) {
+        const left = arr[i-1];
+        const right =  arr[i]
+        const [down, up] = calcSwap(left, right);
+        let swap = false;
+        if (down <= up && down < 0) {
+            swap = 'down'
+        } else if (up < 0) {
+            swap = 'up'
+        }
+        if (swap === 'down') {
+            left.ids.push(right.ids.shift())
+            const bbox = right.idBbox.shift()
+            left.idBbox.push(bbox)
+            updateBbox(left.bbox, bbox);
+            right.bbox = calcBbox(right.idBbox);
+            left.length += 4;
+            left.totalLength += 4;
+            right.length -= 4;
+            right.totalLength -= 4;
+        } else if (swap === 'up') {
+            right.ids.unshift(left.ids.pop())
+            const bbox = left.idBbox.pop()
+            right.idBbox.unshift(bbox)
+            updateBbox(right.bbox, bbox);
+            left.bbox = calcBbox(left.idBbox);
+            right.length += 4;
+            right.totalLength += 4;
+            left.length -= 4;
+            left.totalLength -= 4;
+       
+        }
+
+    }
+}
 class QixNode {
     constructor(ids, children = []) {
         this.ids = [];
@@ -137,6 +195,7 @@ class Qix {
             }
             treeRow.push(new QixNode(item));
         }
+        // maybeSwap(treeRow)
         while (treeRow.length > this.nodeSize) {
             const prevRow = treeRow;
             treeRow = [];

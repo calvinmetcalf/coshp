@@ -2,9 +2,6 @@ import query from './bbox-query.js';
 import test from 'tape'
 import COSHP from '../coshp.js'
 import FileReader from '../src/FileReader.js'
-import shpjs from 'shpjs';
-import { parseData } from '../src/parseQix.js';
-import fs from 'fs/promises'
 const makeCoshp = (path, arg) => {
     return new COSHP(new FileReader(`${import.meta.dirname}/data/${path}`), arg)
 }

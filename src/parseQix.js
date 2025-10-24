@@ -56,9 +56,6 @@ export const makeTree = rows => {
 export const parseData = data => {
     let offset = 16;
     const endian = data.getUint8(3) !== 2;
-    // console.log('version', data.getUint8(4))
-    // console.log('shapes', data.getUint32(8, endian))
-    // console.log('depth', data.getUint32(12, endian))
     const rows = [];
     while (offset < data.byteLength) {
         const out = parse(data, offset, endian);

@@ -17,7 +17,7 @@ const copyDBFHEader = async (out, coshp) => {
         await coshp.createDbfReader();
     }
     const len = coshp.dbfReader.header.headerLen;
-    const data = await coshp.reader.read('dbf', 0, len + 1); // yes there is one extra byte
+    const data = await coshp.reader.read('dbf', 0, len); 
     out.write(new Uint8Array(data.buffer));
 }
 const packShx = (offset, length) => {
@@ -43,9 +43,9 @@ const packQix = (object, lilendian) => {
     view.setUint32(40 + i * 4, object.children, lilendian);
     return new Uint8Array(buffer);
 }
-export default async (path) => {
+export default async (path, suffix='-ordered') => {
     const coshp = new COSHP(new FileReader(path));
-    const outPrefix = `${path}-ordered`;
+    const outPrefix = `${path}${suffix}`;
     const rawQix = await coshp.reader.readAll('qix', true);
     const qixIndex = parseData(rawQix);
     const outShp = fsNorm.createWriteStream(`${outPrefix}.shp`);

@@ -149,6 +149,9 @@ export class QixBlockReader {
                 todo.push(...children);
             }
         }
+        if (!output.length) {
+            return [];
+        }
         return consolidateIds(output)
     }
     async init() {

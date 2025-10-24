@@ -7,6 +7,7 @@ export default class FileReader {
         this.readers = new Map();
         this.open = true;
         this.readerProms = new Map();
+        this.stats = new Map();
     }
     async getLength(type) {
         if (!this.readers.has(type)) {
@@ -26,12 +27,25 @@ export default class FileReader {
         const path = `${this.base}.${type}`;
         let out = await readFile(path);
         let outlen = out.length;
+        this.recordCall(type, outlen)
         if (dataView) {
             out = new DataView(out.buffer);
         } else {
             out = out.toString('utf8');
         }
         return out;
+    }
+    recordCall(type, length) {
+        let stuff = this.stats.get(type);
+        if (!stuff) {
+            stuff = {
+                size: 0,
+                calls: 0
+            }
+        }
+        stuff.calls++;
+        stuff.size += length;
+        this.stats.set(type, stuff);
     }
     async read(type, offset, length) {
         if (!this.open) {
@@ -46,6 +60,7 @@ export default class FileReader {
         const reader = this.readers.get(type);
         const out = new DataView(new ArrayBuffer(length));
         await reader.read(out, 0, length, offset);
+        this.recordCall(type, length)
         return out;
     }
     createReader(type) {

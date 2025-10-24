@@ -1,5 +1,6 @@
 import COSHP from '../coshp.js';
-const coshp = new COSHP('test/data/blockgroups-ordered');
+const path = (new URLSearchParams(location.search)).get('file') || 'blockgroups-ordered';
+const coshp = new COSHP('test/data/' + path);
 
 var map = L.map('map', {
     minZoom: 14
@@ -27,6 +28,7 @@ const getShps = async () => {
     geojsonLayer.clearLayers();
     // maybe some sort of spinner
     const bounds = map.getBounds().toBBoxString().split(',');
+    console.log(bounds);
     const shps = await coshp.query(bounds);
     console.log('shps', shps)
     geojsonLayer.addData(shps)

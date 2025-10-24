@@ -229,7 +229,7 @@ export default class COSHP {
         this.qixTree = new QixBlockReader(this.reader, this.blocksize)
         // await this.qixTree.init();
     }
-    async query(bboxRaw) {
+    async query(bboxRaw, stats) {
         if (!this.qixTree) {
             await this.#setUpQix();
         }
@@ -238,7 +238,8 @@ export default class COSHP {
         let filtered = 0;
         const results = await pmap(queryIds, async (idSet) => {
             if (idSet.type === 'range') {
-                const { features } = await this.getByIdRange(idSet.start, idSet.end);
+                const {features} = await this.getByIdRange(idSet.start, idSet.end);
+              
                 let start = idSet.start - 1;
                 const out = [];
                 for (const feature of features) {
@@ -271,12 +272,17 @@ export default class COSHP {
             }
         })
         const out = results.filter(item => item).flat();
-        console.log('filtered', filtered);
+        // console.log('filtered', filtered);
 
-        return {
+        const outfile = {
             type: 'FeatureCollection',
             features: out
         }
+        if (stats) {
+            outfile.filtered = filtered;
+            outfile.calls = queryIds.length;
+        }
+        return outfile;
     }
     async close() {
         if (this.reader.close) {
