@@ -61,6 +61,10 @@ I was doing research for a talk and Paul Ramsey [nerd sniped](https://xkcd.com/3
 
 probably not
 
+### can I see how the qix index works?
+
+yes go check out this [demo](https://calvinmetcalf.github.io/coshp/qix-demo.html)
+
 ## Versions
 
 # 2.0.0
@@ -81,3 +85,7 @@ Small bug fix as I didn't publish 2.0.0 quite right
 # 2.0.2
 
 Change the main file name so that you can easily import coshp directly. 
+
+# 2.1.0
+
+a bunch of small changes I realized while writing a talk about this, also we now have some more options.
