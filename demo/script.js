@@ -28,14 +28,14 @@ const getShps = async () => {
     geojsonLayer.clearLayers();
     // maybe some sort of spinner
     const bounds = map.getBounds().toBBoxString().split(',');
-    console.log(bounds);
+    // console.log(bounds);
     const shps = await coshp.query(bounds);
-    console.log('shps', shps)
+    // console.log('shps', shps)
     geojsonLayer.addData(shps)
 }
 // map.on('moveend zoomend', getShps);
 getShps().then(() => {
-    console.log('loaded')
+    // console.log('loaded')
 })
 var info = L.control();
 
