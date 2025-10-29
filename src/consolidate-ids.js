@@ -1,4 +1,5 @@
-export const consolidateIds = (ids) => {
+export const consolidateIds = (ids, gap = 0) => {
+    gap++;
     ids.sort((a, b) => a - b);
     const out = [];
     let prev;
@@ -14,7 +15,7 @@ export const consolidateIds = (ids) => {
             continue;
         }
         if (prev.type === 'single') {
-            if (prev.id + 1 === cur) {
+            if (prev.id + gap >= cur) {
                 prev = {
                     type: 'range',
                     start: prev.id,
@@ -30,7 +31,7 @@ export const consolidateIds = (ids) => {
             continue;
         }
         if (prev.type === 'range') {
-            if (prev.end + 1 === cur) {
+            if (prev.end + gap >= cur) {
                 prev.end = cur;
             } else {
                 out.push(prev);

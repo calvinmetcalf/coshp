@@ -6,6 +6,19 @@ export default class FileReader {
             path = path.slice(0, -4);
         }
         this.base = path;
+        this.stats = new Map();
+    }
+       recordCall(type, length) {
+        let stuff = this.stats.get(type);
+        if (!stuff) {
+            stuff = {
+                size: 0,
+                calls: 0
+            }
+        }
+        stuff.calls++;
+        stuff.size += length;
+        this.stats.set(type, stuff);
     }
     async getLength(ext) {
         const path = this.makePath(type);
@@ -32,6 +45,7 @@ export default class FileReader {
             return req.text();
         }
         const arrayBuffer = await req.arrayBuffer();
+        this.recordCall(type, arrayBuffer.byteLength)
         return new DataView(arrayBuffer)
     }
     async read(type, offset, length) {
@@ -46,6 +60,7 @@ export default class FileReader {
             throw new Error(req.statusText);
         }
         const arrayBuffer = await req.arrayBuffer();
+        this.recordCall(type, length)
         return new DataView(arrayBuffer)
     }
     async close() { }

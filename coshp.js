@@ -16,15 +16,28 @@ const fixBbox = bbox => {
     })
 }
 export default class COSHP {
-    constructor(reader, blocksize) {
+    constructor(reader, opts={}) {
         if (typeof reader === 'string') {
             this.reader = new HttpReader(reader);
         } else {
             this.reader = reader;
         }
+        let blocksize;
+        if (typeof opts === 'number') {
+            blocksize = opts;
+            opts = {};
+        }
+        if (opts.blocksize) {
+            blocksize = opts.blocksize;
+        }
+        this.gap = 0;
+        if (opts.gap) {
+            this.gap = opts.gap;
+        }
         this.shpReader = null;
         this.dbfReader = null;
         this.qixTree = null;
+        
         this.blocksize = blocksize;
         this.cache = new Map();
     }
@@ -226,7 +239,7 @@ export default class COSHP {
     }
     async #setUpQix() {
         // this.qixTree = new QixBlockReader(this.reader);
-        this.qixTree = new QixBlockReader(this.reader, this.blocksize)
+        this.qixTree = new QixBlockReader(this.reader, this.blocksize, this.gap)
         // await this.qixTree.init();
     }
     async query(bboxRaw, stats) {

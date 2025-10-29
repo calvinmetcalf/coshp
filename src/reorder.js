@@ -43,9 +43,9 @@ const packQix = (object, lilendian) => {
     view.setUint32(40 + i * 4, object.children, lilendian);
     return new Uint8Array(buffer);
 }
-export default async (path, suffix='-ordered') => {
+export default async (path, suffix='ordered') => {
     const coshp = new COSHP(new FileReader(path));
-    const outPrefix = `${path}${suffix}`;
+    const outPrefix = `${path}-${suffix}`;
     const rawQix = await coshp.reader.readAll('qix', true);
     const qixIndex = parseData(rawQix);
     const outShp = fsNorm.createWriteStream(`${outPrefix}.shp`);
@@ -101,11 +101,11 @@ export default async (path, suffix='-ordered') => {
         await coshp.createShpReader();
     }
     if (coshp.cache.get('prj-raw')) {
-        console.log('writing prj')
+        // console.log('writing prj')
         await fs.writeFile(`${outPrefix}.prj`, coshp.cache.get('prj-raw'));
     }
     if (coshp.cache.get('cpg')) {
-        console.log('writing cpg')
+        // console.log('writing cpg')
         await fs.writeFile(`${outPrefix}.cpg`, coshp.cache.get('cpg'));
     }
     console.log('done')

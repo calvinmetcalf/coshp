@@ -129,8 +129,9 @@ class QixNode {
 }
 
 export class QixBlockReader {
-    constructor(reader) {
-        this.tree = new QixNode(0, new BlockReader(reader, 'qix'));
+    constructor(reader, blocksize, gap) {
+        this.tree = new QixNode(0, new BlockReader(reader, 'qix', blocksize));
+        this.gap = gap;
     }
     async query(bbox) {
         const output = [];
@@ -152,7 +153,7 @@ export class QixBlockReader {
         if (!output.length) {
             return [];
         }
-        return consolidateIds(output)
+        return consolidateIds(output, this.gap)
     }
     async init() {
         await this.tree.init();

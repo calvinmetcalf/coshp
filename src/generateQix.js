@@ -2,7 +2,7 @@
 * Based upon https://github.com/mourner/flatbush/blob/5729a98facd94a66038b7772906f78cd22249336/index.js (ISC Vladimir Agafonkin)
 */
 import checkOverlap from './checkOverlap.js'
-
+import hilbert from './hilbert-math.js'
 const updateBbox = (old, nw) => {
     if (nw[0] < old[0]) {
         old[0] = nw[0]
@@ -47,7 +47,7 @@ const bboxArea = (bbox) => (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]);
 const calcBbox = (arr) => {
     const bbox =  [Infinity, Infinity, -Infinity, -Infinity];
     for (const item of arr) {
-        updateBbox(bbox, item);
+        updateBbox(bbox, item.bbox);
     }
     return bbox;
 }
@@ -55,11 +55,11 @@ const calcSwap = (left, right) => {
     const leftArea = bboxArea(left.bbox);
     const rightArea = bboxArea(right.bbox);
     const leftBboxShiftDown = [...left.bbox];
-    updateBbox(leftBboxShiftDown, right.idBbox[0]);
-    const rightBboxShiftDown = calcBbox(right.idBbox.slice(1))
-    const leftBboxShiftUp = calcBbox(left.idBbox.slice(0, -1));
+    updateBbox(leftBboxShiftDown, right.ids[0].bbox);
+    const rightBboxShiftDown = calcBbox(right.ids.slice(1))
+    const leftBboxShiftUp = calcBbox(left.ids.slice(0, -1));
     const rightBboxShiftUp =  [...right.bbox];
-    updateBbox(rightBboxShiftUp, left.idBbox[left.idBbox.length - 1]);
+    updateBbox(rightBboxShiftUp, left.ids[left.ids.length - 1].bbox);
     const downAreaChange = (bboxArea(leftBboxShiftDown) - leftArea) +  (bboxArea(rightBboxShiftDown) - rightArea);
     const upAreaChange = (bboxArea(leftBboxShiftUp) - leftArea) +  (bboxArea(rightBboxShiftUp) - rightArea);
     return [downAreaChange, upAreaChange]
@@ -77,51 +77,38 @@ const maybeSwap = arr=> {
             swap = 'up'
         }
         if (swap === 'down') {
-            left.ids.push(right.ids.shift())
-            const bbox = right.idBbox.shift()
-            left.idBbox.push(bbox)
-            updateBbox(left.bbox, bbox);
-            right.bbox = calcBbox(right.idBbox);
+            const id = right.ids.shift();
+            left.ids.push(id)
+            updateBbox(left.bbox, id.bbox);
+            right.bbox = calcBbox(right.ids);
             left.length += 4;
             left.totalLength += 4;
             right.length -= 4;
             right.totalLength -= 4;
         } else if (swap === 'up') {
-            right.ids.unshift(left.ids.pop())
-            const bbox = left.idBbox.pop()
-            right.idBbox.unshift(bbox)
-            updateBbox(right.bbox, bbox);
-            left.bbox = calcBbox(left.idBbox);
+            const id = left.ids.pop()
+            right.ids.unshift(id)
+            updateBbox(right.bbox, id.bbox);
+            left.bbox = calcBbox(left.ids);
             right.length += 4;
             right.totalLength += 4;
             left.length -= 4;
             left.totalLength -= 4;
-       
         }
 
     }
 }
 class QixNode {
     constructor(ids, children = []) {
-        this.ids = [];
-        this.idBbox = [];
-        this.bbox = [Infinity, Infinity, -Infinity, -Infinity]
-        for (const id of ids) {
-            this.ids.push(id.id);
-            this.idBbox.push(id.bbox);
-            updateBbox(this.bbox, id.bbox);
-        }
+        this.ids = ids
         this.children = children
+        this.calcBbox()
         this.leaf = !this.children.length;
-        this.length = (44 + this.ids.length * 4);
-        this.totalLength = this.length;
         this.height = 1;
-
         if (!this.leaf) {
             for (const child of this.children) {
                 this.height = Math.max(this.height, child.height);
-                this.totalLength += child.totalLength;
-                updateBbox(this.bbox, child.bbox);
+    
             }
             this.height++;
         }
@@ -129,8 +116,30 @@ class QixNode {
     intersects(bbox) {
         return checkOverlap(bbox, this.bbox);
     }
+    calcBbox(deep) {
+        this.bbox = [Infinity, Infinity, -Infinity, -Infinity]
+        for (const id of this.ids) {
+            updateBbox(this.bbox, id.bbox);
+        }
+       for (const child of this.children) {
+        if (deep) {
+            child.calcBbox(deep);
+        }
+         updateBbox(this.bbox, child.bbox);
+       }
+    }
+        length() {
+        return  (44 + this.ids.length * 4);
+    }
+    totalLength() {
+        let length =this.length();
+        for (const child of this.children) {
+            length += child.totalLength();
+        }
+        return length;
+    }
     serializeSelf(byteOrder, array, offset) {
-        array.setUint32(offset, this.totalLength - 44 - this.ids.length * 4, byteOrder);
+        array.setUint32(offset, this.totalLength() - 44 - this.ids.length * 4, byteOrder);
         array.setFloat64(offset + 4, this.bbox[0], byteOrder);
         array.setFloat64(offset + 12, this.bbox[1], byteOrder);
         array.setFloat64(offset + 20, this.bbox[2], byteOrder);
@@ -138,7 +147,7 @@ class QixNode {
         array.setUint32(offset + 36, this.ids.length, byteOrder);
         let i = 0;
         for (const id of this.ids) {
-            array.setUint32(offset + 40 + (i * 4), id - 1, byteOrder);
+            array.setUint32(offset + 40 + (i * 4), id.id - 1, byteOrder);
             i++;
         }
         array.setUint32(offset + 40 + (i * 4), this.children.length, byteOrder);
@@ -148,18 +157,41 @@ class QixNode {
         if (this.leaf) {
             return;
         }
-        let newOffset = offset + this.length;
+        let newOffset = offset + this.length();
         for (const child of this.children) {
             child.serialize(byteOrder, array, newOffset);
-            newOffset += child.totalLength;
+            newOffset += child.totalLength();
 
         }
         return;
     }
+    mapybePromote() {
+       const newIds = [];
+       for (const child of this.children) {
+        if (!child.ids.length) {
+            continue;
+        }
+        const childArea = bboxArea(child.bbox);
+        const target = childArea * 0.6;
+        const ids = [];
+       for (const id of child.ids) {
+            if (bboxArea(id.bbox) >= target) {
+                newIds.push(id);
+            } else {
+                ids.push(id)
+            }
+       }
+       child.ids = ids;
+       child.calcBbox();
+      }
+      if (newIds.length) {
+        this.ids = this.ids.concat(newIds);
+      }
+    }
 }
 
 class Qix {
-    constructor(nodeSize = 4, leafSize = 8) {
+    constructor(nodeSize = 4, leafSize = 8, opts={}) {
         this.offset = 100;
         this.bbox = [Infinity, Infinity, -Infinity, -Infinity]
         this.rows = [];
@@ -167,6 +199,8 @@ class Qix {
         this.nodeSize = nodeSize;
         this.leafSize = leafSize;
         this.maxDepth = null;
+        this.swap = opts.swap;
+        this.promote = opts.promote;
     }
     updateBbox(bbox) {
         updateBbox(this.bbox, bbox);
@@ -195,7 +229,9 @@ class Qix {
             }
             treeRow.push(new QixNode(item));
         }
-        // maybeSwap(treeRow)
+        if (this.swap) {
+          maybeSwap(treeRow)
+        }
         while (treeRow.length > this.nodeSize) {
             const prevRow = treeRow;
             treeRow = [];
@@ -207,8 +243,14 @@ class Qix {
                 while (i < target) {
                     item.push(prevRow[i++])
                 }
-                treeRow.push(new QixNode([], item));
+               
+                const node = new QixNode([], item);
+                treeRow.push(node);
+                if (this.promote) {
+                  node.mapybePromote();
+                }
             }
+           
         }
         if (treeRow.length === 1) {
             this.root = treeRow[0];
@@ -218,7 +260,7 @@ class Qix {
 
     }
     outputBinary(byteOrder = false) {
-        const length = 16 + this.root.totalLength;
+        const length = 16 + this.root.totalLength();
         const arr = new ArrayBuffer(length);
         const view = new DataView(arr);
         view.setUint8(0, 83); 'S';
@@ -282,61 +324,11 @@ class Qix {
         }
     }
 }
-export default (data, nodeSize, leafSize) => {
-    const qix = new Qix(nodeSize, leafSize);
+export default (data, nodeSize, leafSize, opts={}) => {
+    const qix = new Qix(nodeSize, leafSize, opts);
     qix.injestShp(data);
     qix.createTree();
     return qix.outputBinary();
 }
 
 
-/**
- * Fast Hilbert curve algorithm by http://threadlocalmutex.com/
- * Ported from C++ https://github.com/rawrunprotected/hilbert_curves (public domain)
- * taken from https://github.com/mourner/flatbush/blob/5729a98facd94a66038b7772906f78cd22249336/index.js (ISC, Vladimir Agafonkin)
- */
-function hilbert(x, y) {
-    let a = x ^ y;
-    let b = 0xFFFF ^ a;
-    let c = 0xFFFF ^ (x | y);
-    let d = x & (y ^ 0xFFFF);
-
-    let A = a | (b >> 1);
-    let B = (a >> 1) ^ a;
-    let C = ((c >> 1) ^ (b & (d >> 1))) ^ c;
-    let D = ((a & (c >> 1)) ^ (d >> 1)) ^ d;
-
-    a = A; b = B; c = C; d = D;
-    A = ((a & (a >> 2)) ^ (b & (b >> 2)));
-    B = ((a & (b >> 2)) ^ (b & ((a ^ b) >> 2)));
-    C ^= ((a & (c >> 2)) ^ (b & (d >> 2)));
-    D ^= ((b & (c >> 2)) ^ ((a ^ b) & (d >> 2)));
-
-    a = A; b = B; c = C; d = D;
-    A = ((a & (a >> 4)) ^ (b & (b >> 4)));
-    B = ((a & (b >> 4)) ^ (b & ((a ^ b) >> 4)));
-    C ^= ((a & (c >> 4)) ^ (b & (d >> 4)));
-    D ^= ((b & (c >> 4)) ^ ((a ^ b) & (d >> 4)));
-
-    a = A; b = B; c = C; d = D;
-    C ^= ((a & (c >> 8)) ^ (b & (d >> 8)));
-    D ^= ((b & (c >> 8)) ^ ((a ^ b) & (d >> 8)));
-
-    a = C ^ (C >> 1);
-    b = D ^ (D >> 1);
-
-    let i0 = x ^ y;
-    let i1 = b | (0xFFFF ^ (i0 | a));
-
-    i0 = (i0 | (i0 << 8)) & 0x00FF00FF;
-    i0 = (i0 | (i0 << 4)) & 0x0F0F0F0F;
-    i0 = (i0 | (i0 << 2)) & 0x33333333;
-    i0 = (i0 | (i0 << 1)) & 0x55555555;
-
-    i1 = (i1 | (i1 << 8)) & 0x00FF00FF;
-    i1 = (i1 | (i1 << 4)) & 0x0F0F0F0F;
-    i1 = (i1 | (i1 << 2)) & 0x33333333;
-    i1 = (i1 | (i1 << 1)) & 0x55555555;
-
-    return ((i1 << 1) | i0) >>> 0;
-}

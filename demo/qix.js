@@ -1,10 +1,11 @@
 
 import HttpReader from '../src/HttpReader.js'
 import {EagerQix} from '../src/parseQix.js'
-
+import COSHP from '../coshp.js';
 const filepath = (new URLSearchParams(location.search)).get('file') || 'blockgroups-ordered';
 
 const qix = new EagerQix(new HttpReader('test/data/' + filepath));
+const coshp = new COSHP('test/data/' + filepath)
 await qix.init();
 
 const features = [];
@@ -59,9 +60,23 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let parent = null;
 const data = geojson;
+const runQueries = async feature => {
+    for (const id of feature.properties.shapeIds) {
+        const feature = await coshp.getById(id + 1);
+        otherGeojson.addData(feature);
+    }
+}
 const geojsonLayer = L.geoJSON({
     type: 'FeatureCollection', features: []
 }, {
+    style(feature) {
+        if (feature.properties.childIds.length) {
+            return {};
+        }
+        return {
+            fillOpacity: 0
+        }
+    },
    onEachFeature(feature, layer) {
     // console.log(feature, layer)
     if (feature.properties.childIds.length) {
@@ -69,12 +84,23 @@ const geojsonLayer = L.geoJSON({
             // e.preventDefault();
             parent = feature.properties.id;
             setVisable();
+            otherGeojson.clearLayers();
         })
     } else {
-        layer.bindPopup(`num shapes ${feature.properties.shapeIds.length}`)
+        layer.on('click', (e)=>{
+             otherGeojson.clearLayers();
+            runQueries(feature).catch(e=>console.error(e));
+            geojsonLayer.resetStyle();
+            console.log('parent', layer.getBounds().toBBoxString())
+            layer.setStyle({
+                  fillOpacity: 0,
+                  color: '#0f0'
+            })
+        });
     }
     if (feature.properties.parent) {
         layer.on('contextmenu', ()=>{
+            otherGeojson.clearLayers();
             const parentNode = data.features.find((feature)=>feature.properties.id === parent);
             parent = parentNode.properties.parent;
             setVisable();
@@ -82,6 +108,11 @@ const geojsonLayer = L.geoJSON({
     }
 }
 }).addTo(map);
+const otherGeojson  = L.geoJSON({
+    type: 'FeatureCollection', features: []
+}, {onEachFeature(feature, layer) {
+    layer.bindPopup(`bounds: ${layer.getBounds().toBBoxString()}`)
+}}).addTo(map);
 window.geojsonLayer = geojsonLayer
 // map.on('movestart zoomstart', () => {
 //     geojsonLayer.clearLayers();

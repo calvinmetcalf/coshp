@@ -49,49 +49,60 @@ function contains(outer, inner) {
     return true;
 }
 
-function handleRings(rings) {
-    const outers = [];
-    const inners = [];
-    for (const ring of rings) {
-        const proccessed = isClockWise(ring);
-        if (proccessed.clockWise) {
-            outers.push(proccessed)
-        } else {
-            inners.push(proccessed)
-        }
-    }
-    // this is an optimization, 
-    // but it would also put in weird bad rings that would otherwise get left out
-    // if (outers.length === 1) {
-    //   const out = [outers[0].ring]
-    //   for (const inner of inners) {
-    //     out.push(inner.ring);
-
-    //   }
-    //   return [out];
-    // }
-    for (const inner of inners) {
-        for (const outer of outers) {
-            if (contains(outer, inner)) {
-                outer.children.push(inner.ring);
-                break;
-            }
-        }
-    }
-    const out = [];
-    for (const outer of outers) {
-        out.push([outer.ring].concat(outer.children));
-    }
-    return out;
-}
-function polyReduce(a, b) {
-    if (isClockWise(b) || !a.length) {
-        a.push([b]);
+function handleRings(rings, reversed = false) {
+  const outers = [];
+  const inners = [];
+  for (const ring of rings) {
+    const proccessed = isClockWise(ring);
+    if (proccessed.clockWise !== reversed) {
+      outers.push(proccessed)
     } else {
-        a[a.length - 1].push(b);
+      inners.push(proccessed)
     }
-    return a;
+  }
+  const orphens = [];
+  for (const inner of inners) {
+    let candidate;
+    for (const outer of outers) {
+      if (contains(outer, inner)) {
+        if (!candidate) {
+          candidate = outer;
+        } else {
+          if (contains(candidate, outer)) {
+            candidate = outer;
+          }
+        }
+
+      }
+    }
+    if (candidate) {
+      candidate.children.push(inner.ring);
+    } else {
+      orphens.push(inner);
+    }
+  }
+  if (reversed) {
+    return {
+      outers, orphens
+    }
+  }
+  if (orphens.length && !reversed) {
+    const otherPosibility = handleRings(rings, true);
+    if (otherPosibility.orphens.length === 0) {
+      const out = [];
+      for (const outer of otherPosibility.outers) {
+        out.push([outer.ring.toReversed()].concat(outer.children.map(item => item.toReversed())));
+      }
+      return out;
+    }
+  }
+  const out = [];
+  for (const outer of outers) {
+    out.push([outer.ring].concat(outer.children));
+  }
+  return out;
 }
+
 ParseShp.prototype.parsePoint = function (data) {
     return {
         type: 'Point',

@@ -1,6 +1,7 @@
 import shpjs from 'shpjs'
 import fs from 'fs/promises'
 import checkOverlap from '../src/checkOverlap.js';
+import getBbox from '../src/getBbox.js'
 const getFile = async (file, ext) => fs.readFile(`${import.meta.dirname}/data/${file}.${ext}`);
 
 export default async (file, bbox) => {
@@ -16,6 +17,6 @@ export default async (file, bbox) => {
     }
     return {
         type: 'FeatureCollection',
-        features: geojson.features.filter(({ geometry }) => checkOverlap(geometry.bbox, bbox))
+        features: geojson.features.filter(({ geometry }) => checkOverlap(getBbox(geometry.coordinates), bbox))
     }
 }
